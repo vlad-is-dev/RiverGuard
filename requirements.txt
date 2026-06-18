@@ -1,0 +1,23 @@
+# RiverGuard engine — Python dependencies
+# Install:  pip install -r requirements.txt
+# Geospatial packages (geopandas, rasterio, pysheds) may need system libraries (GDAL).
+# If pip struggles on your OS, use a conda env: conda install -c conda-forge geopandas rasterio pysheds
+
+# core
+requests>=2.31
+python-dotenv>=1.0
+pandas>=2.0
+numpy>=1.26
+
+# geospatial
+shapely>=2.0
+geopandas>=0.14
+rasterio>=1.3
+pysheds>=0.3            # flow direction / accumulation from the DEM
+osmnx>=1.9             # pull rivers + assets from OpenStreetMap
+
+# imagery / detection
+pillow>=10.0           # read/crop image tiles for change detection
+
+# AI
+anthropic>=0.39        # vision obstruction detection + work-order text

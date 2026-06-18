@@ -1,0 +1,25 @@
+# secrets
+.env
+ 
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+ 
+# data (downloaded source data is large and reproducible — keep it out of git)
+data/raw/
+data/interim/
+# keep the deliverable:
+!data/processed/scenario.json
+ 
+# frontend
+web/node_modules/
+web/.next/
+web/.vercel/
+ 
+# os / editor
+.DS_Store
+.vscode/
+ 
