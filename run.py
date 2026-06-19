@@ -170,7 +170,15 @@ def build_point(p, deadline, real_rivers, assets, storm_mm):
             exposure = p["fallback_exposure"]
 
     # damage from JRC depth-damage curves
-    damage = damage_mod.estimate_damage_eur(exposure, depth)
+    breakdown = None
+    if exposure.get("_building_items") is not None:
+        det = damage_mod.estimate_damage_detailed(
+            exposure.pop("_building_items"), exposure.pop("_road_items"),
+            exposure.pop("_asset_items"))
+        damage = det["total_eur"]
+        breakdown = det
+    else:
+        damage = damage_mod.estimate_damage_eur(exposure, depth)
     clearing = CLEARING_COST_EUR
     ratio = round(damage / clearing) if clearing else 0
 
@@ -190,6 +198,10 @@ def build_point(p, deadline, real_rivers, assets, storm_mm):
                                         obstruction["label"], damage),
         },
     }
+    if breakdown:
+        point["roi"]["breakdown"] = breakdown["breakdown"]
+        point["roi"]["per_building_eur"] = breakdown["per_building_eur"]
+        point["roi"]["avg_depth_m"] = breakdown["avg_depth_m"]
     if flood_info:
         point["flood"] = flood_info
     return point

@@ -127,8 +127,18 @@ def flood_extent(lat: float, lon: float, depth_m: float,
         "water_level_m": round(water, 1),
         "base_elev_m": round(base, 1),
         "cell_m": round(cell_m, 1),
-        "lats": lats, "lons": lons, "flooded": flooded,
+        "lats": lats, "lons": lons, "flooded": flooded, "elev": E, "water_level": water,
     }
+
+
+def local_depth(ext, lat: float, lon: float) -> float:
+    """Water depth at (lat,lon): water level minus the ground elevation of its
+    cell, clamped at 0. Near the channel this is deep; near the footprint edge
+    it tapers to ~0 — so each building gets its own realistic depth."""
+    lats, lons, E = ext["lats"], ext["lons"], ext["elev"]
+    i = min(range(len(lats)), key=lambda k: abs(lats[k] - lat))
+    j = min(range(len(lons)), key=lambda k: abs(lons[k] - lon))
+    return max(0.0, ext["water_level"] - E[i][j])
 
 
 def point_flooded(extent, lat: float, lon: float) -> bool:

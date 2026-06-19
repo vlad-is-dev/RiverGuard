@@ -119,21 +119,32 @@ def has_data(exposure: dict) -> bool:
 # Footprint-based exposure: keep only the assets that fall inside the REAL
 # flood footprint computed from terrain (flood.flood_extent), not a radius.
 # ---------------------------------------------------------------------------
-def buildings_centroids(lat, lon, radius_m):
-    """Building centroids near the point, for footprint intersection."""
+def buildings_geom(lat, lon, radius_m):
+    """Buildings near the point as (centroid_lat, centroid_lon, area_m2),
+    so damage can use each building's real footprint, not a flat average."""
     query = f"""[out:json][timeout:60];
 way["building"](around:{radius_m},{lat},{lon});
-out center;"""
-    pts = []
+out geom;"""
+    out = []
     try:
         data = osm.fetch_overpass(query)
-        for el in data.get("elements", []):
-            c = el.get("center")
-            if c:
-                pts.append((c["lat"], c["lon"]))
     except Exception as exc:
-        print(f"[exposure] building centroids failed: {exc}", file=sys.stderr)
-    return pts
+        print(f"[exposure] building geom failed: {exc}", file=sys.stderr)
+        return out
+    for el in data.get("elements", []):
+        g = el.get("geometry") or []
+        if len(g) < 3:
+            continue
+        clat = sum(p["lat"] for p in g) / len(g)
+        clon = sum(p["lon"] for p in g) / len(g)
+        # shoelace area in m² using a local equirectangular projection
+        mlon = 111_320.0 * math.cos(math.radians(clat))
+        xy = [((p["lon"] - clon) * mlon, (p["lat"] - clat) * 111_320.0) for p in g]
+        area = 0.0
+        for (x1, y1), (x2, y2) in zip(xy, xy[1:] + xy[:1]):
+            area += x1 * y2 - x2 * y1
+        out.append((clat, clon, abs(area) / 2.0))
+    return out
 
 
 def roads_geom(lat, lon, radius_m):
@@ -156,30 +167,45 @@ out geom;"""
 
 def compute_exposure_flood(lat, lon, assets, ext) -> dict:
     """Exposure from the real flood footprint `ext` (from flood.flood_extent):
-    only buildings/roads/assets that actually sit in the inundated cells."""
+    only assets in inundated cells, each tagged with its own terrain depth so the
+    damage model can value it at the right severity. Returns UI fields plus the
+    per-asset items (_building_items / _road_items / _asset_items) for damage."""
     import flood  # local import avoids any import cycle
 
     lats, lons = ext["lats"], ext["lons"]
     radius_m = haversine_m(lat, lon, lats[0], lons[0])  # centre -> box corner
 
-    b_pts = buildings_centroids(lat, lon, radius_m)
-    buildings = sum(1 for (la, lo) in b_pts if flood.point_flooded(ext, la, lo))
+    building_items = []   # (area_m2, depth_m)
+    for (blat, blon, area) in buildings_geom(lat, lon, radius_m):
+        if flood.point_flooded(ext, blat, blon):
+            building_items.append((area, flood.local_depth(ext, blat, blon)))
 
-    road_m, road_names = 0.0, []
+    road_items, road_m, road_names = [], 0.0, []
     for name, coords in roads_geom(lat, lon, radius_m):
-        seg_m = 0.0
         for (lon1, lat1), (lon2, lat2) in zip(coords, coords[1:]):
             mlat, mlon = (lat1 + lat2) / 2, (lon1 + lon2) / 2
             if flood.point_flooded(ext, mlat, mlon):
-                seg_m += haversine_m(lat1, lon1, lat2, lon2)
-        if seg_m > 0:
-            road_m += seg_m
-            if name and name not in road_names:
-                road_names.append(name)
+                seg = haversine_m(lat1, lon1, lat2, lon2)
+                road_items.append((seg, flood.local_depth(ext, mlat, mlon)))
+                road_m += seg
+                if name and name not in road_names:
+                    road_names.append(name)
 
-    critical = [{"type": a["type"], "name": a["name"]}
-                for a in (assets or []) if flood.point_flooded(ext, a["lat"], a["lon"])][:3]
+    asset_items, critical = [], []
+    for a in (assets or []):
+        if flood.point_flooded(ext, a["lat"], a["lon"]):
+            d = flood.local_depth(ext, a["lat"], a["lon"])
+            asset_items.append((a["type"], d))
+            if len(critical) < 3:
+                critical.append({"type": a["type"], "name": a["name"]})
     if road_names:
         critical.append({"type": "road", "name": road_names[0], "length_m": round(road_m)})
 
-    return {"buildings": buildings, "road_m": round(road_m), "critical_assets": critical}
+    return {
+        "buildings": len(building_items),
+        "road_m": round(road_m),
+        "critical_assets": critical,
+        "_building_items": building_items,
+        "_road_items": road_items,
+        "_asset_items": asset_items,
+    }
