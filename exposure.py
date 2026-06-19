@@ -113,3 +113,73 @@ def estimate_damage_eur(exposure: dict, depth_factor: float = 1.0) -> int:
 def has_data(exposure: dict) -> bool:
     return bool(exposure.get("buildings") or exposure.get("road_m")
                 or exposure.get("critical_assets"))
+
+
+# ---------------------------------------------------------------------------
+# Footprint-based exposure: keep only the assets that fall inside the REAL
+# flood footprint computed from terrain (flood.flood_extent), not a radius.
+# ---------------------------------------------------------------------------
+def buildings_centroids(lat, lon, radius_m):
+    """Building centroids near the point, for footprint intersection."""
+    query = f"""[out:json][timeout:60];
+way["building"](around:{radius_m},{lat},{lon});
+out center;"""
+    pts = []
+    try:
+        data = osm.fetch_overpass(query)
+        for el in data.get("elements", []):
+            c = el.get("center")
+            if c:
+                pts.append((c["lat"], c["lon"]))
+    except Exception as exc:
+        print(f"[exposure] building centroids failed: {exc}", file=sys.stderr)
+    return pts
+
+
+def roads_geom(lat, lon, radius_m):
+    """Road ways near the point with geometry: list of (name, [[lon,lat], ...])."""
+    query = f"""[out:json][timeout:60];
+way["highway"~"motorway|trunk|primary|secondary|tertiary|residential"](around:{radius_m},{lat},{lon});
+out geom;"""
+    ways = []
+    try:
+        data = osm.fetch_overpass(query)
+        for el in data.get("elements", []):
+            geom = el.get("geometry")
+            if geom:
+                ways.append((el.get("tags", {}).get("name"),
+                             [[g["lon"], g["lat"]] for g in geom]))
+    except Exception as exc:
+        print(f"[exposure] roads geom failed: {exc}", file=sys.stderr)
+    return ways
+
+
+def compute_exposure_flood(lat, lon, assets, ext) -> dict:
+    """Exposure from the real flood footprint `ext` (from flood.flood_extent):
+    only buildings/roads/assets that actually sit in the inundated cells."""
+    import flood  # local import avoids any import cycle
+
+    lats, lons = ext["lats"], ext["lons"]
+    radius_m = haversine_m(lat, lon, lats[0], lons[0])  # centre -> box corner
+
+    b_pts = buildings_centroids(lat, lon, radius_m)
+    buildings = sum(1 for (la, lo) in b_pts if flood.point_flooded(ext, la, lo))
+
+    road_m, road_names = 0.0, []
+    for name, coords in roads_geom(lat, lon, radius_m):
+        seg_m = 0.0
+        for (lon1, lat1), (lon2, lat2) in zip(coords, coords[1:]):
+            mlat, mlon = (lat1 + lat2) / 2, (lon1 + lon2) / 2
+            if flood.point_flooded(ext, mlat, mlon):
+                seg_m += haversine_m(lat1, lon1, lat2, lon2)
+        if seg_m > 0:
+            road_m += seg_m
+            if name and name not in road_names:
+                road_names.append(name)
+
+    critical = [{"type": a["type"], "name": a["name"]}
+                for a in (assets or []) if flood.point_flooded(ext, a["lat"], a["lon"])][:3]
+    if road_names:
+        critical.append({"type": "road", "name": road_names[0], "length_m": round(road_m)})
+
+    return {"buildings": buildings, "road_m": round(road_m), "critical_assets": critical}

@@ -9,6 +9,7 @@ roi) will replace these sample numbers with computed ones.
 """
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -19,6 +20,7 @@ import exposure as exp_mod
 import damage as damage_mod
 import detect
 import discover
+import flood
 
 CLEARING_COST_EUR = round(CLEARING_CREW_COST_BGN_PER_HOUR * CLEARING_DEFAULT_HOURS)
 
@@ -132,20 +134,47 @@ def build_point(p, deadline, real_rivers, assets, storm_mm):
 
     obstruction = p["obstruction"]  # already set by discovery (vision) or seed (manual)
 
-    # real exposure from OSM, with offline fallback
-    exposure = exp_mod.compute_exposure(p["lat"], p["lon"], assets) if assets else {}
-    if not exp_mod.has_data(exposure):
-        exposure = p["fallback_exposure"]
-
-    # flood depth from rainfall + AI-measured blockage; damage from JRC curves
+    # flood depth from rainfall + AI-measured blockage (needed before the footprint)
     narrowing = int(obstruction.get("channel_narrowing_pct", 40) or 40)
     depth = estimate_depth_m(storm_mm, narrowing)
     p["risk"]["flood_depth_m"] = depth
+
+    # --- real flood footprint from terrain (Open-Meteo / Copernicus elevation) ---
+    flood_info, exposure = None, None
+    try:
+        ext = flood.flood_extent(p["lat"], p["lon"], depth)
+    except Exception as exc:
+        print(f"[flood] {p['id']}: {exc}", file=sys.stderr)
+        ext = None
+    if ext and ext["flooded_cells"] >= 3 and assets is not None:
+        try:
+            exposure = exp_mod.compute_exposure_flood(p["lat"], p["lon"], assets, ext)
+            flood_info = {
+                "polygon": ext["polygon"],
+                "area_ha": round(ext["area_m2"] / 10000.0, 2),
+                "depth_m": depth,
+                "water_level_m": ext["water_level_m"],
+                "cell_m": ext["cell_m"],
+                "method": "Bathtub inundation on Copernicus GLO-90 terrain (Open-Meteo)",
+            }
+            print(f"  {p['id']} flood footprint: {flood_info['area_ha']} ha, "
+                  f"depth {depth} m, {exposure['buildings']} buildings")
+        except Exception as exc:
+            print(f"[flood] {p['id']} exposure failed: {exc}", file=sys.stderr)
+            exposure = None
+
+    # fallback: radius-based exposure if the terrain footprint is unavailable
+    if exposure is None or not exp_mod.has_data(exposure):
+        exposure = exp_mod.compute_exposure(p["lat"], p["lon"], assets) if assets else {}
+        if not exp_mod.has_data(exposure):
+            exposure = p["fallback_exposure"]
+
+    # damage from JRC depth-damage curves
     damage = damage_mod.estimate_damage_eur(exposure, depth)
     clearing = CLEARING_COST_EUR
     ratio = round(damage / clearing) if clearing else 0
 
-    return {
+    point = {
         "id": p["id"], "river_id": p["river_id"], "river_name": p["river_name"],
         "lat": p["lat"], "lon": p["lon"],
         "obstruction": obstruction,
@@ -161,6 +190,9 @@ def build_point(p, deadline, real_rivers, assets, storm_mm):
                                         obstruction["label"], damage),
         },
     }
+    if flood_info:
+        point["flood"] = flood_info
+    return point
 
 
 def build_scenario():

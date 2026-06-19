@@ -113,6 +113,7 @@
   .verdict .nar{font-family:"IBM Plex Mono",monospace;color:var(--critical);font-size:12.5px}
 
   .label{font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--faint);margin:22px 0 9px}
+  .label .sub{font-family:"IBM Plex Mono",monospace;letter-spacing:0;text-transform:none;color:var(--water-cyan,#4FD2E6)}
   .exposure{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);border-radius:10px;overflow:hidden;border:1px solid var(--line-soft)}
   .ex-row{display:flex;align-items:center;gap:10px;background:var(--panel-2);padding:10px 12px;font-size:13px}
   .ex-row .ic{width:7px;height:7px;border-radius:2px;background:var(--water);flex:none}
@@ -234,7 +235,7 @@ const RISK = {critical:"critical",high:"critical",medium:"medium",low:"low"};
 const eurFull  = n => "€"+Math.round(n).toLocaleString("en-US");
 const eurShort = n => n>=1e6 ? "€"+(n/1e6).toFixed(2)+"M" : n>=1e3 ? "€"+Math.round(n/1e3)+"k" : "€"+Math.round(n);
 
-let registry = [], selected = null;
+let registry = [], selected = null, floodLayer = null;
 
 fetch("./scenario.json").then(r=>r.json()).then(data=>{
   renderStorm(data.forecast);
@@ -295,8 +296,16 @@ function select(entry){
   if(selected){selected.card.classList.remove("sel");mkEl(selected)&&mkEl(selected).classList.remove("mk-sel");}
   selected=entry; entry.card.classList.add("sel");
   const el=mkEl(entry); el&&el.classList.add("mk-sel");
+  drawFlood(entry);
   map.panTo([entry.p.lat,entry.p.lon],{animate:true});
   renderDetail(entry); document.getElementById("detail").classList.add("open");
+}
+function drawFlood(entry){
+  if(floodLayer){map.removeLayer(floodLayer);floodLayer=null;}
+  const poly=entry.p.flood&&entry.p.flood.polygon;
+  if(!poly||poly.length<3)return;
+  floodLayer=L.polygon(poly,{color:"#4FD2E6",weight:1.4,opacity:.85,
+    fillColor:"#37AECB",fillOpacity:.20,dashArray:"4 4",className:"flood-zone"}).addTo(map);
 }
 function mkEl(entry){return entry.marker._icon?entry.marker._icon.querySelector(".mk"):null;}
 
@@ -307,6 +316,9 @@ function renderDetail(entry){
       <div class="ai-chip"><span class="d"></span>AI · ${o.detected_by||"vision"}${conf}</div></div>`:"";
   const assets=(ex.critical_assets||[]).map(a=>
     `<div class="ex-row"><span class="ic"></span><span class="n">${a.name}</span><span class="q">${a.type.replace(/_/g," ")}</span></div>`).join("");
+  const fl=p.flood;
+  const floodHead=fl?`<div class="label">If it overflows <span class="sub">· flood zone ${fl.area_ha} ha · water ${fl.depth_m} m</span></div>`
+                    :`<div class="label">If it overflows</div>`;
   document.getElementById("d-content").innerHTML=`
     <div class="d-head"><div class="row1"><span class="rank">#${entry.rank}</span>
       <h3>${p.river_name}</h3><span class="pill ${lv}">${p.risk.level}</span>
@@ -315,10 +327,11 @@ function renderDetail(entry){
       ${shot}
       <p class="verdict">${o.label}. <span class="nar">channel −${o.channel_narrowing_pct}%</span></p>
 
-      <div class="label">If it overflows</div>
+      ${floodHead}
       <div class="exposure">${assets}
         <div class="ex-row"><span class="ic"></span><span class="n">Buildings exposed</span><span class="q">${ex.buildings}</span></div>
         <div class="ex-row"><span class="ic"></span><span class="n">Road affected</span><span class="q">${ex.road_m} m</span></div></div>
+      ${fl?`<div class="method">Flood zone from ${fl.method}.</div>`:""}
 
       <div class="label">The economics</div>
       <div class="econ">

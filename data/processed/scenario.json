@@ -1,7 +1,7 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-06-19T00:41:14.613147Z",
+    "generated_at": "2026-06-19T05:18:20.050490Z",
     "city": "Sofia",
     "scenario_name": "Sofia river network scan",
     "aoi_bbox": [
@@ -13,9 +13,9 @@
   },
   "forecast": {
     "source": "open-meteo (synthetic fallback)",
-    "issued_at": "2026-06-19T00:39:06.053322Z",
+    "issued_at": "2026-06-19T05:17:42.647566Z",
     "event": {
-      "start": "2026-06-20T14:39:06.053290Z",
+      "start": "2026-06-20T19:17:42.647537Z",
       "lead_time_h": 38,
       "peak_mm_h": 18.0,
       "total_mm": 42.0
@@ -20621,21 +20621,33 @@
         "flood_depth_m": 0.76
       },
       "exposure": {
-        "buildings": 57,
-        "road_m": 1591,
+        "buildings": 91,
+        "road_m": 2984,
         "critical_assets": [
           {
+            "type": "hospital",
+            "name": "Областен диспансер за онкологични заболявания със стационар - София област ЕООД"
+          },
+          {
+            "type": "metro_station",
+            "name": "Централна жп гара"
+          },
+          {
+            "type": "hospital",
+            "name": "СБАЛ Йоан Павел"
+          },
+          {
             "type": "road",
-            "name": "Фортов път",
-            "length_m": 1591
+            "name": "Индира Ганди",
+            "length_m": 2984
           }
         ]
       },
       "roi": {
-        "damage_eur": 332662,
+        "damage_eur": 1675708,
         "clearing_cost_eur": 450,
-        "ratio": 739,
-        "net_saving_eur": 332212,
+        "ratio": 3724,
+        "net_saving_eur": 1675258,
         "method": "JRC depth-damage curves (Huizinga et al. 2017)"
       },
       "dispatch": {
@@ -20644,16 +20656,53 @@
           42.705818,
           23.251407
         ],
-        "deadline": "2026-06-20T14:39:06.053290Z",
-        "reason": "Prevent estimated 332,662 EUR of flood damage downstream",
-        "ticket_text": "Crew 1 -> 42.705818, 23.251407. Clear the mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible. before the rain. Prevents ~332,662 EUR damage."
+        "deadline": "2026-06-20T19:17:42.647537Z",
+        "reason": "Prevent estimated 1,675,708 EUR of flood damage downstream",
+        "ticket_text": "Crew 1 -> 42.705818, 23.251407. Clear the mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible. before the rain. Prevents ~1,675,708 EUR damage."
+      },
+      "flood": {
+        "polygon": [
+          [
+            42.70427803798573,
+            23.255598252541514
+          ],
+          [
+            42.70504801899286,
+            23.251407
+          ],
+          [
+            42.70658798100713,
+            23.247215747458483
+          ],
+          [
+            42.71120786704994,
+            23.256646065676893
+          ],
+          [
+            42.71120786704994,
+            23.25874169194765
+          ],
+          [
+            42.70658798100713,
+            23.25874169194765
+          ],
+          [
+            42.70504801899286,
+            23.257693878812272
+          ]
+        ],
+        "area_ha": 41.14,
+        "depth_m": 0.76,
+        "water_level_m": 582.8,
+        "cell_m": 85.7,
+        "method": "Bathtub inundation on Copernicus GLO-90 terrain (Open-Meteo)"
       }
     }
   ],
   "summary": {
     "points_total": 1,
     "critical_count": 0,
-    "damage_at_risk_eur": 332662,
+    "damage_at_risk_eur": 1675708,
     "clearing_cost_total_eur": 450
   }
 }

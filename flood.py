@@ -18,6 +18,7 @@ It is not a full hydrodynamic (shallow-water) solver; we state that openly.
 """
 import math
 import sys
+import time
 from collections import deque
 
 import requests
@@ -30,9 +31,11 @@ def _m_per_deg_lon(lat: float) -> float:
     return 111_320.0 * math.cos(math.radians(lat))
 
 
-def build_grid(lat: float, lon: float, half_m: float = 600.0, n: int = 25):
+def build_grid(lat: float, lon: float, half_m: float = 600.0, n: int = 15):
     """An n x n grid of (lat, lon) spanning +/- half_m around the center.
-    n is forced odd so the centre cell is the obstruction itself."""
+    n is forced odd so the centre cell is the obstruction itself.
+    Default ~15 cells over 1.2 km => ~85 m/cell, matching the GLO-90 source
+    resolution while keeping the number of API requests small."""
     if n % 2 == 0:
         n += 1
     dlat = half_m / M_PER_DEG_LAT
@@ -44,8 +47,9 @@ def build_grid(lat: float, lon: float, half_m: float = 600.0, n: int = 25):
 
 
 def fetch_elevations(latlons):
-    """latlons: list of (lat, lon). Returns list of elevations in metres.
-    Open-Meteo accepts up to 100 coordinate pairs per request, so we batch."""
+    """latlons: list of (lat, lon). Returns elevations in metres.
+    Open-Meteo accepts up to 100 pairs per request; we batch, pace, and retry
+    on a 429 so a burst doesn't trip the shared free rate limit."""
     out = []
     for k in range(0, len(latlons), 100):
         chunk = latlons[k:k + 100]
@@ -53,14 +57,23 @@ def fetch_elevations(latlons):
             "latitude": ",".join(f"{a:.5f}" for a, _ in chunk),
             "longitude": ",".join(f"{b:.5f}" for _, b in chunk),
         }
-        r = requests.get(ELEV_URL, params=params, timeout=60)
-        r.raise_for_status()
-        out.extend(r.json()["elevation"])
+        for attempt in range(3):
+            try:
+                r = requests.get(ELEV_URL, params=params, timeout=60)
+                r.raise_for_status()
+                out.extend(r.json()["elevation"])
+                break
+            except Exception as exc:
+                if "429" in str(exc) and attempt < 2:
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                raise
+        time.sleep(0.6)  # gentle pacing between batches
     return out
 
 
 def flood_extent(lat: float, lon: float, depth_m: float,
-                 half_m: float = 600.0, n: int = 25):
+                 half_m: float = 600.0, n: int = 15):
     """Flood footprint around (lat, lon) for the given depth.
 
     Returns a dict (or None on network failure):
@@ -158,7 +171,7 @@ if __name__ == "__main__":
     # Real Sofia test point (Perlovska corridor). Depth ~1.2 m of backed-up water.
     lat, lon, depth = 42.685, 23.345, 1.2
     print(f"Flood footprint @ {lat},{lon}  depth {depth} m  (Open-Meteo / Copernicus)")
-    ext = flood_extent(lat, lon, depth, half_m=600, n=25)
+    ext = flood_extent(lat, lon, depth, half_m=600, n=15)
     if not ext:
         print("  no result (check network)")
         sys.exit(1)

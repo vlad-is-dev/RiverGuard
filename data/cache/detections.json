@@ -30,5 +30,13 @@
     "detected_by": "vision (map vs satellite)",
     "confidence": 0.85,
     "image_after": "tiles/S5.jpg"
+  },
+  "42.70601,23.36121": {
+    "type": "clear",
+    "label": "The river channel is clearly visible and unobstructed, aligning with the map's indicated path.",
+    "channel_narrowing_pct": 0,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 1.0,
+    "image_after": "tiles/S2.jpg"
   }
 }
