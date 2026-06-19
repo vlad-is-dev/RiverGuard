@@ -141,6 +141,19 @@
 
   .ticket{font:400 12px/1.6 "IBM Plex Mono",monospace;color:#BFD6E2;white-space:pre-wrap;
     background:#0A1924;border:1px dashed #2a4659;border-radius:10px;padding:13px;margin-top:2px}
+  .label .sub{font-family:"IBM Plex Mono",monospace;letter-spacing:0;text-transform:none;color:var(--water)}
+  .plan{background:#0A1924;border:1px solid var(--line-soft);border-radius:12px;padding:14px;margin-top:2px}
+  .plan-head{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14.5px;color:#eaf6ff;margin-bottom:10px}
+  .plan-head .eta{margin-left:auto;font:600 11px/1 "IBM Plex Mono",monospace;color:var(--water);
+    border:1px solid var(--water-dim);border-radius:6px;padding:4px 7px}
+  .plan-steps{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:7px}
+  .plan-steps li{font-size:13.5px;color:#cfe0ec;line-height:1.45}
+  .plan-steps li::marker{color:var(--water);font-family:"IBM Plex Mono",monospace;font-weight:600}
+  .plan-gear{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .plan-gear span{font:500 11px/1 "IBM Plex Mono",monospace;color:#bcd3e0;background:var(--panel-2);
+    border:1px solid var(--line-soft);border-radius:999px;padding:6px 10px}
+  .plan-access{margin-top:11px;font-size:12.5px;color:var(--muted)}
+  .plan-access b{color:#dce9f3;font-weight:600;margin-right:4px}
   .copy{margin-top:10px;width:100%;cursor:pointer;font:600 13px/1 "Space Grotesk";
     color:#0A1620;background:var(--water);border:none;border-radius:10px;padding:11px;transition:filter .15s}
   .copy:hover{filter:brightness(1.08)}
@@ -350,12 +363,21 @@ function renderDetail(entry){
       <div class="method">${ex.buildings} buildings in the flood zone · avg ${r.avg_depth_m} m deep · ≈${eurFull(r.per_building_eur)}/building. ${r.method}.</div>`
       :(r.method?`<div class="method">Damage estimated with ${r.method}.</div>`:"")}
 
-      <div class="label">Work order</div>
-      <div class="ticket">${p.dispatch.ticket_text}\ndeadline: ${p.dispatch.deadline||"before the rain"}</div>
+      <div class="label">Work order ${p.plan?`<span class="sub">· AI plan</span>`:""}</div>
+      ${p.plan?`<div class="plan">
+        <div class="plan-head">${p.plan.headline}${p.plan.eta_hours?`<span class="eta">~${p.plan.eta_hours} h</span>`:""}</div>
+        <ol class="plan-steps">${p.plan.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+        ${(p.plan.equipment&&p.plan.equipment.length)?`<div class="plan-gear">${p.plan.equipment.map(e=>`<span>${e}</span>`).join("")}</div>`:""}
+        ${p.plan.access?`<div class="plan-access"><b>Access</b> ${p.plan.access}</div>`:""}
+      </div>`:`<div class="ticket">${p.dispatch.ticket_text}\ndeadline: ${p.dispatch.deadline||"before the rain"}</div>`}
       <button class="copy" id="copyBtn">Copy work order</button>
     </div>`;
   const btn=document.getElementById("copyBtn");
-  btn.onclick=()=>{navigator.clipboard.writeText(p.dispatch.ticket_text+"\ndeadline: "+(p.dispatch.deadline||"before the rain"))
+  const planText = p.plan ? (p.plan.headline+"\n"+p.plan.steps.map((s,i)=>`${i+1}. ${s}`).join("\n")
+      +(p.plan.equipment&&p.plan.equipment.length?"\nGear: "+p.plan.equipment.join(", "):"")
+      +(p.plan.access?"\nAccess: "+p.plan.access:"")+`\nDeadline: ${p.dispatch.deadline||"before the rain"}`)
+    : (p.dispatch.ticket_text+"\ndeadline: "+(p.dispatch.deadline||"before the rain"));
+  btn.onclick=()=>{navigator.clipboard.writeText(planText)
     .then(()=>{btn.textContent="Copied";btn.classList.add("done");setTimeout(()=>{btn.textContent="Copy work order";btn.classList.remove("done")},1600)});};
 }
 </script>

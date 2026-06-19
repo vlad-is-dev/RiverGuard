@@ -1,0 +1,21 @@
+{
+  "42.70582,23.25141|40": {
+    "headline": "Clear Suhodolska River to Prevent Flood",
+    "steps": [
+      "Deploy crew to northern access road and secure perimeter",
+      "Trim dense trees and scrub using chainsaws to expose the channel",
+      "Use portable hand‑spade and silt‑suction pump to remove debris and restore width to at least 60%",
+      "Install temporary sandbags and portable barriers along vulnerable banks",
+      "Verify flow clearance and monitor water level until rain passes"
+    ],
+    "equipment": [
+      "Chainsaws with spare blades",
+      "Hand spades and pruning saws",
+      "Portable water‑suction pump",
+      "Sandbags and inflatable flood barriers"
+    ],
+    "access": "Reach site via Lulinitsa road; off‑road vehicle can park at the cleared meadow entry.",
+    "eta_hours": 6.0,
+    "by": "ai"
+  }
+}

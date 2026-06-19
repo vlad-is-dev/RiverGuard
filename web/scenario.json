@@ -1,7 +1,7 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-06-19T05:54:16.282545Z",
+    "generated_at": "2026-06-19T06:07:49.891512Z",
     "city": "Sofia",
     "scenario_name": "Sofia river network scan",
     "aoi_bbox": [
@@ -13,9 +13,9 @@
   },
   "forecast": {
     "source": "open-meteo (synthetic fallback)",
-    "issued_at": "2026-06-19T05:54:00.801164Z",
+    "issued_at": "2026-06-19T06:07:27.911943Z",
     "event": {
-      "start": "2026-06-20T19:54:00.801128Z",
+      "start": "2026-06-20T20:07:27.911912Z",
       "lead_time_h": 38,
       "peak_mm_h": 18.0,
       "total_mm": 42.0
@@ -20663,7 +20663,7 @@
           42.705818,
           23.251407
         ],
-        "deadline": "2026-06-20T19:54:00.801128Z",
+        "deadline": "2026-06-20T20:07:27.911912Z",
         "reason": "Prevent estimated 12,756,316 EUR of flood damage downstream",
         "ticket_text": "Crew 1 -> 42.705818, 23.251407. Clear the mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible. before the rain. Prevents ~12,756,316 EUR damage."
       },
@@ -20703,6 +20703,25 @@
         "water_level_m": 582.8,
         "cell_m": 85.7,
         "method": "Bathtub inundation on Copernicus GLO-90 terrain (Open-Meteo)"
+      },
+      "plan": {
+        "headline": "Clear Suhodolska River to Prevent Flood",
+        "steps": [
+          "Deploy crew to northern access road and secure perimeter",
+          "Trim dense trees and scrub using chainsaws to expose the channel",
+          "Use portable hand‑spade and silt‑suction pump to remove debris and restore width to at least 60%",
+          "Install temporary sandbags and portable barriers along vulnerable banks",
+          "Verify flow clearance and monitor water level until rain passes"
+        ],
+        "equipment": [
+          "Chainsaws with spare blades",
+          "Hand spades and pruning saws",
+          "Portable water‑suction pump",
+          "Sandbags and inflatable flood barriers"
+        ],
+        "access": "Reach site via Lulinitsa road; off‑road vehicle can park at the cleared meadow entry.",
+        "eta_hours": 6.0,
+        "by": "ai"
       }
     }
   ],

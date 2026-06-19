@@ -21,6 +21,7 @@ import damage as damage_mod
 import detect
 import discover
 import flood
+import ai_plan
 
 CLEARING_COST_EUR = round(CLEARING_CREW_COST_BGN_PER_HOUR * CLEARING_DEFAULT_HOURS)
 
@@ -235,6 +236,24 @@ def build_scenario():
 
     points = [build_point(p, deadline, real_rivers, assets, storm_mm) for p in base]
     points.sort(key=lambda p: p["roi"]["ratio"], reverse=True)
+
+    # AI clearing plan per kept site (cached; baked in so the demo needs no key)
+    if api_key:
+        for pt in points:
+            ctx = {
+                "river": pt["river_name"], "label": pt["obstruction"].get("label", ""),
+                "narrowing": pt["obstruction"].get("channel_narrowing_pct", 40),
+                "buildings": pt["exposure"].get("buildings", 0),
+                "road_m": pt["exposure"].get("road_m", 0),
+                "depth": (pt.get("flood") or {}).get("depth_m", pt["risk"].get("flood_depth_m", 0.5)),
+                "damage": pt["roi"]["damage_eur"], "lat": pt["lat"], "lon": pt["lon"],
+            }
+            plan = ai_plan.generate_plan(ctx, api_key)
+            if plan:
+                pt["plan"] = plan
+        n_plans = sum(1 for pt in points if pt.get("plan"))
+        if n_plans:
+            print(f"  AI clearing plans: {n_plans}/{len(points)}")
 
     return {
         "meta": {

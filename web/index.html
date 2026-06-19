@@ -3,277 +3,277 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RiverGuard — clear the river before it clears the street</title>
+<title>RiverGuard — stop the flood upstream</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0A1620; --bg:#0B1A26; --bg-2:#0c1f2e; --panel:#0E2030; --panel-2:#12283A;
-    --line:#21394C; --line-soft:#1a2f40;
-    --water:#3DB7E4; --water-2:#4FD2E6; --water-dim:#246e92;
-    --critical:#FF6B5E; --amber:#F2A741; --low:#46D0A0;
-    --text:#dce9f3; --muted:#8aa6bb; --faint:#5d7589;
+    --bg:#07131C; --bg-2:#0A1A26; --card:#0E2231; --card-2:#102A3C;
+    --line:#193143; --line-soft:#142836;
+    --text:#EAF3F9; --muted:#8FA7B8; --faint:#5f788b;
+    --water:#5BD1E6; --water-deep:#2C93B4; --amber:#F2B45C; --low:#5BE0AE; --crit:#FF7A6E;
+    --r:20px;
   }
   *{box-sizing:border-box}
-  html{scroll-behavior:smooth}
+  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
   body{margin:0;background:var(--bg);color:var(--text);
-    font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+    font-family:"Space Grotesk",-apple-system,system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;line-height:1.5;letter-spacing:-.01em}
   a{color:inherit;text-decoration:none}
   .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
-  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
-  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:2.5px;
-    text-transform:uppercase;color:var(--water);margin:0 0 18px}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11.5px;letter-spacing:3px;
+    text-transform:uppercase;color:var(--water);margin:0}
 
-  /* ---- top nav ---- */
-  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
-    background:rgba(11,26,38,.78);border-bottom:1px solid var(--line-soft)}
-  nav .row{display:flex;align-items:center;gap:18px;height:62px}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.2px}
-  .brand span{color:var(--water)}
-  .brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
-    background:linear-gradient(150deg,#1d6f9b,#0f3a52);box-shadow:0 0 0 1px #2f7ea433 inset}
-  .tag{font:600 9.5px/1 "IBM Plex Mono",monospace;letter-spacing:1.5px;color:var(--water);
-    border:1px solid var(--water-dim);border-radius:5px;padding:3px 6px;margin-left:1px}
-  .nav-links{display:flex;gap:22px;margin-left:auto;font-size:14px;color:var(--muted)}
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .8s ease,transform .8s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:60;backdrop-filter:saturate(160%) blur(16px);
+    background:rgba(7,19,28,.72);border-bottom:1px solid var(--line-soft)}
+  nav .row{display:flex;align-items:center;height:60px;gap:20px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;letter-spacing:-.3px}
+  .brand b{font-weight:600}.brand b span{color:var(--water)}
+  .brand .mark{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(150deg,#207a9c,#0e3247)}
+  .nav-links{display:flex;gap:26px;margin-left:auto;font-size:14.5px;color:var(--muted)}
   .nav-links a:hover{color:var(--text)}
-  .btn{font-family:"Space Grotesk";font-weight:600;font-size:14px;border-radius:9px;
-    padding:10px 16px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
-    transition:transform .12s ease,background .15s ease}
-  .btn:hover{transform:translateY(-1px)}
-  .btn-primary{background:var(--water);color:#062130}
-  .btn-primary:hover{background:var(--water-2)}
-  .btn-ghost{background:transparent;border-color:var(--line);color:var(--text)}
-  .btn-ghost:hover{border-color:var(--water-dim);background:#0f2535}
-  nav .btn{padding:8px 14px}
-  .nav-cta{margin-left:6px}
-  :focus-visible{outline:2px solid var(--water);outline-offset:3px;border-radius:6px}
+  .pill{display:inline-flex;align-items:center;gap:8px;border-radius:999px;font-weight:500;
+    font-size:14.5px;padding:10px 18px;cursor:pointer;border:1px solid transparent;
+    transition:transform .15s ease,background .2s ease,border-color .2s ease;white-space:nowrap}
+  .pill:hover{transform:translateY(-1px)}
+  .pill-solid{background:var(--water);color:#04222c;font-weight:600}
+  .pill-solid:hover{background:#74dcef}
+  .pill-ghost{color:var(--text);border-color:var(--line)}
+  .pill-ghost:hover{border-color:var(--water-deep);background:#0d2433}
+  .pill-text{color:var(--water);padding:10px 4px}
+  .nav .pill{padding:8px 16px}
+  :focus-visible{outline:2px solid var(--water);outline-offset:3px;border-radius:8px}
 
-  /* ---- hero ---- */
-  .hero{position:relative;overflow:hidden;padding:84px 0 0}
-  .storm{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:#f3d9a6;
-    background:#2a200d;border:1px solid #5a4318;border-radius:999px;padding:7px 14px;margin-bottom:26px}
-  .storm .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px #f2a74122}
-  .storm b{color:#ffe7b8;font-weight:600}
-  .storm .demo{font:600 9px/1 "IBM Plex Mono",monospace;letter-spacing:1px;color:#caa86a;
-    border:1px solid #5a4318;border-radius:4px;padding:3px 5px}
-  h1.head{font-size:clamp(34px,6vw,62px);line-height:1.04;letter-spacing:-1.4px;font-weight:700;
-    margin:0 0 22px;max-width:14ch}
-  h1.head em{font-style:normal;color:var(--water)}
-  .thesis{font-size:clamp(17px,2.2vw,21px);color:var(--text);max-width:46ch;margin:0 0 14px}
-  .thesis b{color:#fff;font-weight:600}
-  .thesis .big{color:var(--water-2)}
-  .thesis .save{color:var(--low)}
-  .sub{font-size:16px;color:var(--muted);max-width:54ch;margin:0 0 34px}
-  .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-bottom:64px}
-  .cta-row .hint{font-size:12.5px;color:var(--faint);margin-left:4px}
+  /* hero */
+  .hero{position:relative;text-align:center;padding:118px 0 90px;overflow:hidden}
+  .hero .eyebrow{margin-bottom:26px}
+  .storm{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:#f3dcab;
+    background:#241b0c;border:1px solid #4d3a16;border-radius:999px;padding:6px 14px;margin-bottom:30px}
+  .storm .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px #f2b45c22}
+  .storm b{color:#ffe9c2;font-weight:500}
+  .storm .demo{font:500 9px/1 "IBM Plex Mono",monospace;letter-spacing:1px;color:#caa163;border:1px solid #4d3a16;border-radius:4px;padding:3px 5px}
+  h1{font-size:clamp(40px,7.4vw,82px);line-height:1.02;letter-spacing:-.035em;font-weight:400;
+    margin:0 auto 26px;max-width:15ch}
+  h1 b{font-weight:600}
+  h1 .accent{color:var(--water)}
+  .lede{font-size:clamp(17px,2.1vw,21px);color:var(--muted);max-width:50ch;margin:0 auto 38px;font-weight:400}
+  .hero-cta{display:flex;gap:14px;justify-content:center;align-items:center;flex-wrap:wrap}
 
-  .waves{position:absolute;left:0;right:0;bottom:-2px;height:200px;width:100%;z-index:-1;opacity:.5}
-  .waves path{animation:drift 14s linear infinite}
-  .waves path:nth-child(2){animation-duration:20s;animation-direction:reverse;opacity:.6}
-  .waves path:nth-child(3){animation-duration:28s;opacity:.4}
-  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-160px)}}
+  .current{position:absolute;left:0;right:0;bottom:0;height:160px;width:100%;z-index:-1;opacity:.6;pointer-events:none}
+  .current path{fill:none;stroke:var(--water-deep);stroke-width:1.5;opacity:.5;
+    stroke-dasharray:10 14;animation:flow 6s linear infinite}
+  .current path:nth-child(2){stroke:#1c5a72;opacity:.35;animation-duration:9s}
+  @keyframes flow{to{stroke-dashoffset:-240}}
 
-  section{padding:74px 0}
-  .section-head{margin-bottom:38px}
-  .section-head h2{font-size:clamp(24px,3.5vw,34px);letter-spacing:-.8px;margin:0;font-weight:600}
-  .section-head p{color:var(--muted);margin:10px 0 0;max-width:52ch}
+  /* product card (live) */
+  .product{padding:0 0 30px}
+  .frame{max-width:760px;margin:0 auto;background:linear-gradient(180deg,#0d2231,#0a1b27);
+    border:1px solid var(--line);border-radius:26px;padding:14px;
+    box-shadow:0 40px 120px -30px rgba(0,0,0,.7),0 0 0 1px rgba(91,209,230,.06)}
+  .frame .bar{display:flex;align-items:center;gap:7px;padding:6px 8px 12px}
+  .frame .bar i{width:10px;height:10px;border-radius:50%;background:#28455a;display:block}
+  .frame .bar .u{margin-left:12px;font:500 11.5px/1 "IBM Plex Mono",monospace;color:var(--faint)}
+  .glass{background:radial-gradient(120% 140% at 80% 0%,#10283a,#0a1c28);border:1px solid var(--line-soft);
+    border-radius:16px;padding:30px}
+  .pv-top{display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .pv-top .rv{font-size:19px;font-weight:600}
+  .pv-top .rk{font:600 10px/1 "IBM Plex Mono",monospace;letter-spacing:1px;text-transform:uppercase;
+    padding:5px 9px;border-radius:6px;color:var(--crit);background:#3a1b1c;border:1px solid #6a2f2c}
+  .pv-top .live{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font:500 11px/1 "IBM Plex Mono",monospace;color:var(--low)}
+  .pv-top .live i{width:7px;height:7px;border-radius:50%;background:var(--low);animation:beat 2.4s infinite}
+  @keyframes beat{0%{box-shadow:0 0 0 0 #5be0ae66}70%{box-shadow:0 0 0 10px #5be0ae00}100%{box-shadow:0 0 0 0 #5be0ae00}}
+  .pv-grid{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:14px}
+  .pv-cell .v{font-family:"IBM Plex Mono",monospace;font-size:clamp(22px,3.2vw,30px);font-weight:500;letter-spacing:-1px}
+  .pv-cell .v.risk{color:var(--crit)} .pv-cell .v.roi{color:var(--low)} .pv-cell .v.save{color:var(--water)}
+  .pv-cell .k{color:var(--muted);font-size:12.5px;margin-top:6px}
+  .pv-foot{margin-top:20px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line-soft);padding-top:14px}
 
-  /* ---- problem stats ---- */
-  .problem{background:linear-gradient(180deg,#0c1f2e,#0b1a26);border-top:1px solid var(--line-soft);
-    border-bottom:1px solid var(--line-soft)}
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-  .stat{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:24px}
-  .stat .n{font-family:"IBM Plex Mono",monospace;font-size:34px;font-weight:600;color:var(--water-2);letter-spacing:-1px}
-  .stat .t{color:var(--muted);font-size:14.5px;margin-top:8px}
+  /* sections */
+  section{padding:104px 0}
+  .sec-head{text-align:center;max-width:60ch;margin:0 auto 60px}
+  .sec-head .eyebrow{margin-bottom:16px}
+  .sec-head h2{font-size:clamp(28px,4.4vw,46px);letter-spacing:-.03em;font-weight:400;margin:0}
+  .sec-head h2 b{font-weight:600}
+  .sec-head p{color:var(--muted);font-size:17px;margin:16px auto 0;max-width:48ch}
+  .band{background:var(--bg-2)}
 
-  /* ---- how it works: the river spine ---- */
-  .flow{position:relative;padding-left:8px}
-  .flow::before{content:"";position:absolute;left:23px;top:14px;bottom:14px;width:2px;
-    background:linear-gradient(180deg,var(--water-dim),var(--water),var(--water-dim));opacity:.55}
-  .step{position:relative;display:grid;grid-template-columns:48px 1fr;gap:22px;padding:18px 0}
-  .node{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;z-index:2;
-    background:#0d2536;border:1.5px solid var(--water-dim);
-    font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--water-2);font-size:15px}
-  .step h3{margin:7px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.3px}
-  .step p{margin:0;color:var(--muted);font-size:15px;max-width:60ch}
-  .step .src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:7px;letter-spacing:.3px}
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;max-width:920px;margin:0 auto}
+  .step{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--r);padding:32px}
+  .step .no{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--water);letter-spacing:1px}
+  .step h3{font-size:21px;font-weight:600;letter-spacing:-.02em;margin:14px 0 9px}
+  .step p{color:var(--muted);font-size:15px;margin:0}
+  .step .src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:14px;letter-spacing:.3px}
 
-  /* ---- live band ---- */
-  .live{background:linear-gradient(180deg,#0e2535,#0c1f2e);border-top:1px solid var(--line-soft);
-    border-bottom:1px solid var(--line-soft)}
-  .live .label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:2px;
-    text-transform:uppercase;color:var(--low);margin-bottom:22px;display:flex;align-items:center;gap:9px}
-  .live .pulse{width:8px;height:8px;border-radius:50%;background:var(--low);box-shadow:0 0 0 0 #46d0a077;animation:beat 2.4s ease-out infinite}
-  @keyframes beat{0%{box-shadow:0 0 0 0 #46d0a066}70%{box-shadow:0 0 0 12px #46d0a000}100%{box-shadow:0 0 0 0 #46d0a000}}
-  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-  .lv{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:22px}
-  .lv .v{font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:600;letter-spacing:-1px}
-  .lv .v.risk{color:var(--critical)} .lv .v.roi{color:var(--low)} .lv .v.site{color:var(--water-2)}
-  .lv .k{color:var(--muted);font-size:13.5px;margin-top:7px}
+  /* live numbers */
+  .lgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+  .lcell{text-align:center;padding:14px}
+  .lcell .v{font-family:"IBM Plex Mono",monospace;font-size:clamp(26px,4vw,40px);font-weight:500;letter-spacing:-1.5px}
+  .lcell .v.risk{color:var(--crit)} .lcell .v.roi{color:var(--low)} .lcell .v.site{color:var(--water)}
+  .lcell .k{color:var(--muted);font-size:13.5px;margin-top:8px}
 
-  /* ---- data/method ---- */
-  .sources{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-  .src-row{display:flex;align-items:baseline;gap:14px;padding:16px 18px;background:var(--panel);
-    border:1px solid var(--line-soft);border-radius:12px}
-  .src-row .name{font-weight:600;min-width:140px}
-  .src-row .desc{color:var(--muted);font-size:14px}
-  .method-note{margin-top:22px;color:var(--faint);font-size:13.5px;max-width:70ch;
-    border-left:2px solid var(--line);padding-left:14px}
+  /* sources */
+  .sources{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:1px;
+    background:var(--line-soft);border:1px solid var(--line-soft);border-radius:16px;overflow:hidden}
+  .srow{display:flex;align-items:baseline;gap:16px;padding:18px 22px;background:var(--bg)}
+  .srow .n{font-weight:600;min-width:170px}
+  .srow .d{color:var(--muted);font-size:14.5px}
+  .note{max-width:760px;margin:24px auto 0;color:var(--faint);font-size:13.5px;text-align:center;line-height:1.6}
 
-  /* ---- final CTA ---- */
-  .final{text-align:center;padding:88px 0}
-  .final h2{font-size:clamp(26px,4vw,40px);letter-spacing:-1px;margin:0 0 14px}
-  .final p{color:var(--muted);max-width:46ch;margin:0 auto 30px}
-  .signup{display:flex;gap:10px;max-width:420px;margin:0 auto 18px}
-  .signup input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
-    padding:12px 14px;color:var(--text);font-family:inherit;font-size:14px}
+  /* final */
+  .final{text-align:center}
+  .final h2{font-size:clamp(30px,5vw,52px);letter-spacing:-.03em;font-weight:400;margin:0 0 16px}
+  .final h2 b{font-weight:600;color:var(--water)}
+  .final p{color:var(--muted);max-width:44ch;margin:0 auto 34px;font-size:17px}
+  .signup{display:flex;gap:10px;max-width:440px;margin:0 auto 22px}
+  .signup input{flex:1;background:var(--card);border:1px solid var(--line);border-radius:999px;
+    padding:13px 18px;color:var(--text);font-family:inherit;font-size:15px}
   .signup input::placeholder{color:var(--faint)}
-  .signup .ok{color:var(--low);font-size:14px;align-self:center}
-  .or{color:var(--faint);font-size:13px;margin:18px 0 22px}
+  .ok{color:var(--low);font-size:15px}
+  .or{color:var(--faint);font-size:13.5px;margin:20px 0 24px}
 
-  footer{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--faint);font-size:13px}
+  footer{border-top:1px solid var(--line-soft);padding:34px 0;color:var(--faint);font-size:13px}
   footer .row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
-  footer b{color:var(--muted);font-weight:600}
+  footer b{color:var(--muted);font-weight:500}
 
   @media (max-width:760px){
     .nav-links{display:none}
-    .stats,.live-grid,.sources{grid-template-columns:1fr}
-    .live-grid{grid-template-columns:1fr 1fr}
-    .hero{padding-top:54px}
-    section{padding:54px 0}
+    .steps,.lgrid{grid-template-columns:1fr}
+    .lgrid{grid-template-columns:1fr 1fr}
+    .pv-grid{grid-template-columns:1fr 1fr}
+    .hero{padding-top:70px}
+    section{padding:72px 0}
+    .srow{flex-direction:column;gap:4px}
   }
-  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}}
 </style>
 </head>
-<body>
+<body id="top">
 
 <nav>
   <div class="wrap row">
     <a class="brand" href="#top">
-      <span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 14c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 2.8 2M4 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2" stroke="#eaf6ff" stroke-width="1.7" stroke-linecap="round"/></svg></span>
-      River<span>Guard</span></a>
-    <span class="tag">SOFIA</span>
+      <span class="mark"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 14c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 2.8 2M4 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2" stroke="#eaf6ff" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <b>River<span>Guard</span></b></a>
     <div class="nav-links">
       <a href="#how">How it works</a>
       <a href="#live">Live now</a>
-      <a href="#data">Data &amp; method</a>
+      <a href="#data">Data</a>
     </div>
-    <a class="btn btn-primary nav-cta" href="./console.html">Open live console →</a>
+    <a class="pill pill-solid" href="./console.html">Open live console</a>
   </div>
 </nav>
 
-<header class="hero" id="top">
+<header class="hero">
   <div class="wrap">
-    <div class="storm" id="storm"><span class="dot"></span><span>Forecast loading…</span></div>
-    <p class="eyebrow">Perlovska · Vladayska · Suhodolska · Slatinska</p>
-    <h1 class="head">Clear the river before it <em>clears the street.</em></h1>
-    <p class="thesis" id="thesis">A blocked channel turns ordinary rain into a flood. RiverGuard finds the blockage first.</p>
-    <p class="sub">Forecast the storm, scan every river from satellite, model the flood on real terrain, and hand crews a ranked work list — all before the first drop falls.</p>
-    <div class="cta-row">
-      <a class="btn btn-primary" href="./console.html">Open live console →</a>
-      <a class="btn btn-ghost" href="#how">See how it works ↓</a>
-      <span class="hint mono" id="updated"></span>
+    <div class="storm" id="storm"><span class="dot"></span><span>Loading forecast…</span></div>
+    <p class="eyebrow">Flood intelligence · Sofia urban rivers</p>
+    <h1>Stop the flood <b class="accent">upstream.</b></h1>
+    <p class="lede">A blocked channel turns ordinary rain into a flood. RiverGuard finds the blockage from satellite, models where the water goes, and tells a crew exactly what to clear — before the storm.</p>
+    <div class="hero-cta">
+      <a class="pill pill-solid" href="./console.html">Open live console →</a>
+      <a class="pill pill-text" href="#how">See how it works</a>
     </div>
   </div>
-  <svg class="waves" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
-    <path d="M0,80 C180,40 360,120 540,90 C720,60 900,130 1080,95 C1260,65 1440,110 1620,85 L1620,200 L0,200 Z" fill="#123247"/>
-    <path d="M0,110 C200,80 380,150 560,120 C760,88 920,150 1120,118 C1300,92 1460,140 1620,118 L1620,200 L0,200 Z" fill="#0f2a3c"/>
-    <path d="M0,140 C220,118 400,170 600,150 C800,130 980,175 1180,150 C1340,130 1500,165 1620,150 L1620,200 L0,200 Z" fill="#0c2233"/>
+  <svg class="current" viewBox="0 0 1440 160" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M-40,96 C220,60 380,120 620,96 C860,72 1020,128 1260,98 C1380,84 1480,104 1520,96"/>
+    <path d="M-40,120 C240,92 420,140 660,120 C900,100 1060,150 1300,122 C1400,108 1500,128 1520,120"/>
   </svg>
 </header>
 
-<section class="problem">
+<section class="product" style="padding-top:0">
   <div class="wrap">
-    <div class="section-head">
-      <p class="eyebrow">Why it matters</p>
-      <h2>Sofia floods on a clock no one is watching.</h2>
-    </div>
-    <div class="stats">
-      <div class="stat"><div class="n">~20 yr</div><div class="t">between major floods in Sofia — long enough to forget, short enough to keep happening.</div></div>
-      <div class="stat"><div class="n">~10%</div><div class="t">of Sofia homes carry flood insurance. The rest absorb the loss directly.</div></div>
-      <div class="stat"><div class="n">€450</div><div class="t">to clear one blocked channel — against millions once it overflows.</div></div>
+    <div class="frame reveal" id="frame">
+      <div class="bar"><i></i><i></i><i></i><span class="u">river-guard · live console</span></div>
+      <div class="glass" id="preview">
+        <div class="pv-top"><span class="rv" id="pv-river">Scanning Sofia…</span>
+          <span class="live"><i></i> live</span></div>
+        <div class="pv-grid">
+          <div class="pv-cell"><div class="v save" id="pv-risk">—</div><div class="k">flood damage at risk</div></div>
+          <div class="pv-cell"><div class="v roi" id="pv-roi">—</div><div class="k">return on €1 spent</div></div>
+          <div class="pv-cell"><div class="v" id="pv-sites">—</div><div class="k">sites found</div></div>
+        </div>
+        <div class="pv-foot" id="pv-foot">Open the console to run the latest Sofia scan.</div>
+      </div>
     </div>
   </div>
 </section>
 
-<section id="how">
+<section class="band" id="how">
   <div class="wrap">
-    <div class="section-head">
+    <div class="sec-head reveal">
       <p class="eyebrow">How it works</p>
-      <h2>Four steps, from forecast to crew.</h2>
-      <p>Everything runs ahead of the storm, so the fix lands while it is still cheap.</p>
+      <h2>From forecast to crew, <b>before the rain.</b></h2>
+      <p>Four steps run ahead of the storm, so the fix lands while it is still cheap.</p>
     </div>
-    <div class="flow">
-      <div class="step">
-        <div class="node">01</div>
-        <div><h3>Watch the sky</h3>
-          <p>Pull the rain forecast for Sofia. A heavy-rain window arms the system and starts the clock.</p>
-          <div class="src">Open-Meteo forecast</div></div>
-      </div>
-      <div class="step">
-        <div class="node">02</div>
-        <div><h3>Scan every river</h3>
-          <p>Walk the river network and, at each point, an AI compares the live satellite view against the map — flagging channels choked by debris, dumping, or overgrowth.</p>
-          <div class="src">Esri imagery · OpenStreetMap · vision model</div></div>
-      </div>
-      <div class="step">
-        <div class="node">03</div>
-        <div><h3>Model the flood</h3>
-          <p>Pull the real terrain around each blockage and spread the backed-up water over the actual low ground — to see which blocks and roads go under, not a guess-circle.</p>
-          <div class="src">Copernicus GLO-90 elevation · bathtub inundation</div></div>
-      </div>
-      <div class="step">
-        <div class="node">04</div>
-        <div><h3>Send the crews</h3>
-          <p>Rank every site by the euros of damage it prevents, then output a work order: where to go, what to clear, and by when.</p>
-          <div class="src">EU JRC depth-damage curves · dispatch ticket</div></div>
-      </div>
+    <div class="steps">
+      <div class="step reveal"><div class="no">01</div><h3>Watch the sky</h3>
+        <p>Pull the Sofia rain forecast. A heavy-rain window arms the system and starts the clock.</p>
+        <div class="src">Open-Meteo</div></div>
+      <div class="step reveal"><div class="no">02</div><h3>Scan every river</h3>
+        <p>At each point along the rivers, an AI compares the live satellite view against the map and flags channels choked by debris, dumping, or overgrowth.</p>
+        <div class="src">Esri imagery · OpenStreetMap · vision model</div></div>
+      <div class="step reveal"><div class="no">03</div><h3>Model the flood</h3>
+        <p>Pull the real terrain and spread the backed-up water over the low ground — to see which blocks and roads actually go under, and how deep.</p>
+        <div class="src">Copernicus GLO-90 · bathtub inundation</div></div>
+      <div class="step reveal"><div class="no">04</div><h3>Send the crew</h3>
+        <p>Rank every site by the euros it prevents, then write the crew a plan: what to clear, what gear to bring, and by when.</p>
+        <div class="src">EU JRC damage curves · AI work order</div></div>
     </div>
   </div>
 </section>
 
-<section class="live" id="live">
+<section id="live">
   <div class="wrap">
-    <div class="label"><span class="pulse"></span><span id="live-label">Live from the latest Sofia scan</span></div>
-    <div class="live-grid">
-      <div class="lv"><div class="v risk" id="lv-risk">—</div><div class="k">flood damage at risk</div></div>
-      <div class="lv"><div class="v roi" id="lv-roi">—</div><div class="k">return per €1 of cleanup</div></div>
-      <div class="lv"><div class="v site" id="lv-sites">—</div><div class="k">active sites found</div></div>
-      <div class="lv"><div class="v" id="lv-clear">—</div><div class="k">total cleanup cost</div></div>
+    <div class="sec-head reveal">
+      <p class="eyebrow">Live from the latest scan</p>
+      <h2>What Sofia is sitting on <b>right now.</b></h2>
+    </div>
+    <div class="lgrid reveal">
+      <div class="lcell"><div class="v risk" id="lv-risk">—</div><div class="k">flood damage at risk</div></div>
+      <div class="lcell"><div class="v roi" id="lv-roi">—</div><div class="k">return per €1 of cleanup</div></div>
+      <div class="lcell"><div class="v site" id="lv-sites">—</div><div class="k">active sites</div></div>
+      <div class="lcell"><div class="v" id="lv-clear">—</div><div class="k">total cleanup cost</div></div>
     </div>
   </div>
 </section>
 
-<section id="data">
+<section class="band" id="data">
   <div class="wrap">
-    <div class="section-head">
+    <div class="sec-head reveal">
       <p class="eyebrow">Data &amp; method</p>
-      <h2>Public data, stated plainly.</h2>
+      <h2>Public data, <b>stated plainly.</b></h2>
       <p>Every layer is open and checkable. No black boxes.</p>
     </div>
-    <div class="sources">
-      <div class="src-row"><span class="name">OpenStreetMap</span><span class="desc">river network, buildings, roads, hospitals &amp; stations</span></div>
-      <div class="src-row"><span class="name">Esri World Imagery</span><span class="desc">satellite view for each inspection point</span></div>
-      <div class="src-row"><span class="name">Open-Meteo</span><span class="desc">rain forecast and terrain elevation</span></div>
-      <div class="src-row"><span class="name">Copernicus GLO-90</span><span class="desc">digital terrain for the flood model</span></div>
-      <div class="src-row"><span class="name">EU JRC (Huizinga 2017)</span><span class="desc">depth-damage curves behind every € figure</span></div>
-      <div class="src-row"><span class="name">Vision AI</span><span class="desc">reads satellite vs map to spot blocked channels</span></div>
+    <div class="sources reveal">
+      <div class="srow"><span class="n">OpenStreetMap</span><span class="d">river network, buildings, roads, hospitals &amp; stations</span></div>
+      <div class="srow"><span class="n">Esri World Imagery</span><span class="d">satellite view for each inspection point</span></div>
+      <div class="srow"><span class="n">Open-Meteo</span><span class="d">rain forecast and terrain elevation</span></div>
+      <div class="srow"><span class="n">Copernicus GLO-90</span><span class="d">digital terrain for the flood model</span></div>
+      <div class="srow"><span class="n">EU JRC · Huizinga 2017</span><span class="d">depth-damage curves, Bulgaria-adjusted</span></div>
     </div>
-    <p class="method-note">Flood depth is a first-order estimate from rainfall and the measured blockage; the spread is a bathtub inundation over real terrain, not a full hydrodynamic solve. The terrain, imagery, assets and damage curves are real — the water physics is a transparent MVP, and we say so.</p>
+    <p class="note reveal">Flood depth is a first-order estimate from rainfall and the measured blockage; the spread is a bathtub model over real terrain, not a full hydrodynamic solve. Terrain, imagery, assets and damage curves are real — the water physics is a transparent MVP, and we say so.</p>
   </div>
 </section>
 
 <section class="final">
-  <div class="wrap">
-    <h2>The next storm is already on a timer.</h2>
+  <div class="wrap reveal">
+    <h2>The next storm is <b>already on a timer.</b></h2>
     <p>See where Sofia floods next — and what €450 can stop.</p>
     <div class="signup" id="signup">
       <input type="email" id="email" placeholder="you@city.bg" aria-label="Email for storm alerts">
-      <button class="btn btn-ghost" id="notify">Notify me</button>
+      <button class="pill pill-ghost" id="notify">Notify me</button>
     </div>
     <div class="or">or jump straight in</div>
-    <a class="btn btn-primary" href="./console.html" style="font-size:15px;padding:13px 22px">Open live console →</a>
+    <a class="pill pill-solid" href="./console.html" style="padding:13px 24px;font-size:15.5px">Open live console →</a>
   </div>
 </section>
 
@@ -286,9 +286,9 @@
 
 <script>
   const eur=(n)=>{n=+n||0;
-    if(n>=1e6)return "€"+(n/1e6).toFixed(2).replace(/\.00$/,"")+"M";
-    if(n>=1e3)return "€"+Math.round(n/1e3)+"k";
-    return "€"+Math.round(n);};
+    if(n>=1e6)return "€"+(n/1e6).toFixed(2).replace(/\.?0+$/,"")+"M";
+    if(n>=1e3)return "€"+Math.round(n/1e3)+"k"; return "€"+Math.round(n);};
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v;};
 
   fetch("./scenario.json").then(r=>r.json()).then(s=>{
     const pts=s.points||[];
@@ -297,40 +297,37 @@
     const ratio=clr?Math.round(dmg/clr):0;
     const sites=(s.summary&&s.summary.points_total)||pts.length;
 
-    // hero thesis (live asymmetry)
-    if(pts.length){
-      document.getElementById("thesis").innerHTML =
-        `Right now, <b class="big">${eur(dmg)}</b> of flood damage is backed up behind `+
-        `<b class="save">${eur(clr)}</b> of cleanup — a <b>×${ratio}</b> return on acting early.`;
-    }
-    // live band
-    document.getElementById("lv-risk").textContent  = eur(dmg);
-    document.getElementById("lv-roi").textContent   = "×"+ratio;
-    document.getElementById("lv-sites").textContent = sites;
-    document.getElementById("lv-clear").textContent = eur(clr);
+    set("lv-risk",eur(dmg)); set("lv-roi","×"+ratio); set("lv-sites",sites); set("lv-clear",eur(clr));
+    set("pv-risk",eur(dmg)); set("pv-roi","×"+ratio); set("pv-sites",sites);
 
-    // storm chip
+    if(pts.length){
+      const top=pts[0];
+      set("pv-river",top.river_name||"Active site");
+      const rk=document.getElementById("pv-river").parentNode.querySelector(".rk");
+      const foot=document.getElementById("pv-foot");
+      if(foot) foot.textContent = (top.obstruction&&top.obstruction.label?top.obstruction.label:"Channel obstruction")
+        + (top.flood?` · flood zone ${top.flood.area_ha} ha, water ${top.flood.depth_m} m`:"");
+    }
     const f=s.forecast||{}, e=f.event||f;
     if(e&&e.lead_time_h!=null){
-      const demo=(f.demo||e.demo)?`<span class="demo">DEMO</span>`:"";
-      document.getElementById("storm").innerHTML =
+      const demo=(f.demo||e.demo)?'<span class="demo">DEMO</span>':"";
+      set("storm","");
+      document.getElementById("storm").innerHTML=
         `<span class="dot"></span><span>Heavy rain in <b>${e.lead_time_h} h</b> · <b>${e.total_mm} mm</b> · severity <b>${f.severity||"—"}</b></span> ${demo}`;
-    }
-    const gen=(s.meta&&s.meta.generated_at)||s.generated_at;
-    if(gen){
-      const d=new Date(gen);
-      if(!isNaN(d)) document.getElementById("updated").textContent="scan: "+d.toISOString().slice(0,16).replace("T"," ")+" UTC";
     }
   }).catch(()=>{
     document.getElementById("storm").innerHTML='<span class="dot"></span><span>Open the console for the latest scan</span>';
-    document.getElementById("live-label").textContent="Open the console to run the latest Sofia scan";
   });
+
+  // scroll reveal
+  const io=new IntersectionObserver((es)=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add("in");io.unobserve(x.target);}}),{threshold:.12});
+  document.querySelectorAll(".reveal").forEach(el=>io.observe(el));
 
   // email capture (no backend; remembers on this device)
   const notify=document.getElementById("notify"), email=document.getElementById("email");
   notify.onclick=()=>{
     const v=(email.value||"").trim();
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){email.focus();email.style.borderColor="#FF6B5E";return;}
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){email.focus();email.style.borderColor="#FF7A6E";return;}
     try{localStorage.setItem("rg_alert_email",v);}catch(e){}
     document.getElementById("signup").innerHTML='<div class="ok">✓ You\'re on the list — we\'ll flag the next heavy-rain window for Sofia.</div>';
   };
