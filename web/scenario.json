@@ -1,7 +1,7 @@
 {
   "meta": {
     "schema_version": "1.0",
-    "generated_at": "2026-06-19T00:27:32.618446Z",
+    "generated_at": "2026-06-19T00:41:14.613147Z",
     "city": "Sofia",
     "scenario_name": "Sofia river network scan",
     "aoi_bbox": [
@@ -13,9 +13,9 @@
   },
   "forecast": {
     "source": "open-meteo (synthetic fallback)",
-    "issued_at": "2026-06-19T00:27:06.476108Z",
+    "issued_at": "2026-06-19T00:39:06.053322Z",
     "event": {
-      "start": "2026-06-20T14:27:06.476071Z",
+      "start": "2026-06-20T14:39:06.053290Z",
       "lead_time_h": 38,
       "peak_mm_h": 18.0,
       "total_mm": 42.0
@@ -20603,113 +20603,57 @@
   "points": [
     {
       "id": "P1",
-      "river_id": "perlovska",
-      "river_name": "Perlovska",
-      "lat": 42.69201,
-      "lon": 23.343362,
+      "river_id": "суходолска_река",
+      "river_name": "Суходолска река",
+      "lat": 42.705818,
+      "lon": 23.251407,
       "obstruction": {
-        "type": "construction_debris",
-        "label": "Construction debris narrowing the channel",
-        "channel_narrowing_pct": 60,
-        "detected_by": "manual",
-        "image_before": "tiles/p1_before.jpg",
-        "image_after": "tiles/p1_after.jpg"
+        "type": "vegetation",
+        "label": "The mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible.",
+        "channel_narrowing_pct": 40,
+        "detected_by": "vision (map vs satellite)",
+        "confidence": 0.65,
+        "image_after": "tiles/S4.jpg"
       },
       "risk": {
-        "score": 92,
-        "level": "critical",
-        "flood_depth_m": 0.92
-      },
-      "exposure": {
-        "buildings": 121,
-        "road_m": 4059,
-        "critical_assets": [
-          {
-            "type": "school",
-            "name": "38 ОУ \"Васил Априлов\""
-          },
-          {
-            "type": "school",
-            "name": "Езикова школа \"Панелиника\""
-          },
-          {
-            "type": "road",
-            "name": "Шипка",
-            "length_m": 4059
-          }
-        ]
-      },
-      "roi": {
-        "damage_eur": 1269059,
-        "clearing_cost_eur": 450,
-        "ratio": 2820,
-        "net_saving_eur": 1268609,
-        "method": "JRC depth-damage curves (Huizinga et al. 2017)"
-      },
-      "dispatch": {
-        "crew": "Crew 4",
-        "coords": [
-          42.69201,
-          23.343362
-        ],
-        "deadline": "2026-06-20T14:27:06.476071Z",
-        "reason": "Prevent estimated 1,269,059 EUR of flood damage downstream",
-        "ticket_text": "Crew 4 -> 42.69201, 23.343362. Clear construction debris narrowing the channel before the rain. Prevents ~1,269,059 EUR damage."
-      }
-    },
-    {
-      "id": "P2",
-      "river_id": "vladayska",
-      "river_name": "Vladayska",
-      "lat": 42.695614,
-      "lon": 23.297532,
-      "obstruction": {
-        "type": "narrowing",
-        "label": "Vegetation and silt narrowing the channel",
-        "channel_narrowing_pct": 35,
-        "detected_by": "manual",
-        "image_before": "tiles/p2_before.jpg",
-        "image_after": "tiles/p2_after.jpg"
-      },
-      "risk": {
-        "score": 61,
+        "score": 64,
         "level": "medium",
-        "flood_depth_m": 0.71
+        "flood_depth_m": 0.76
       },
       "exposure": {
-        "buildings": 72,
-        "road_m": 2879,
+        "buildings": 57,
+        "road_m": 1591,
         "critical_assets": [
           {
             "type": "road",
-            "name": "Батолова воденица",
-            "length_m": 2879
+            "name": "Фортов път",
+            "length_m": 1591
           }
         ]
       },
       "roi": {
-        "damage_eur": 382104,
+        "damage_eur": 332662,
         "clearing_cost_eur": 450,
-        "ratio": 849,
-        "net_saving_eur": 381654,
+        "ratio": 739,
+        "net_saving_eur": 332212,
         "method": "JRC depth-damage curves (Huizinga et al. 2017)"
       },
       "dispatch": {
-        "crew": "Crew 2",
+        "crew": "Crew 1",
         "coords": [
-          42.695614,
-          23.297532
+          42.705818,
+          23.251407
         ],
-        "deadline": "2026-06-20T14:27:06.476071Z",
-        "reason": "Prevent estimated 382,104 EUR of flood damage downstream",
-        "ticket_text": "Crew 2 -> 42.695614, 23.297532. Clear vegetation and silt narrowing the channel before the rain. Prevents ~382,104 EUR damage."
+        "deadline": "2026-06-20T14:39:06.053290Z",
+        "reason": "Prevent estimated 332,662 EUR of flood damage downstream",
+        "ticket_text": "Crew 1 -> 42.705818, 23.251407. Clear the mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible. before the rain. Prevents ~332,662 EUR damage."
       }
     }
   ],
   "summary": {
-    "points_total": 2,
-    "critical_count": 1,
-    "damage_at_risk_eur": 1651163,
-    "clearing_cost_total_eur": 900
+    "points_total": 1,
+    "critical_count": 0,
+    "damage_at_risk_eur": 332662,
+    "clearing_cost_total_eur": 450
   }
 }

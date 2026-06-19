@@ -27,13 +27,11 @@ CLEARING_DEFAULT_HOURS = 3
 FLOOD_RADIUS_M = 200   # assets within this radius of a point are in its flood-impact zone
 
 # --- AI detection (OpenRouter) ---
-# Several FREE multimodal (vision) models. detect.py tries them in order and moves
-# to the next on a rate-limit (429) or error, so load is spread and one model being
-# busy doesn't block a scan. Verify/replace slugs at openrouter.ai/models (Free + image input).
+# Use the free auto-router: it picks a valid free model (incl. vision ones like
+# Gemma / Nemotron-VL) automatically, so we never 404 on a hand-typed slug.
+# detect.py still loops this list and could fall back to specific :free slugs if added.
 VISION_MODELS = [
-    "google/gemma-4-31b-it:free",
-    "meta-llama/llama-4-maverick:free",
-    "qwen/qwen2.5-vl-32b-instruct:free",
+    "openrouter/free",
 ]
 
 # --- Auto-discovery of obstruction sites ---

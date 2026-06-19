@@ -1,0 +1,34 @@
+{
+  "42.69201,23.34336": {
+    "type": "vegetation",
+    "label": "River channel is obstructed by dense vegetation",
+    "channel_narrowing_pct": 0,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 0.0,
+    "image_after": "tiles/S0.jpg"
+  },
+  "42.69561,23.29753": {
+    "type": "vegetation",
+    "label": "Mapped Vladaiska channel appears heavily vegetated and largely hidden by dense trees, with no clear open water visible.",
+    "channel_narrowing_pct": 25,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 0.72,
+    "image_after": "tiles/S1.jpg"
+  },
+  "42.70582,23.25141": {
+    "type": "vegetation",
+    "label": "The mapped river corridor is largely obscured by dense trees and scrub, with no clear open channel visible.",
+    "channel_narrowing_pct": 40,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 0.65,
+    "image_after": "tiles/S4.jpg"
+  },
+  "42.70672,23.25880": {
+    "type": "narrowing",
+    "label": "The satellite image shows dense vegetation and construction debris partially obstructing the river channel, which is narrower than indicated on the map.",
+    "channel_narrowing_pct": 0,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 0.85,
+    "image_after": "tiles/S5.jpg"
+  }
+}
