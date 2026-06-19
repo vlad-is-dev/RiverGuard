@@ -1,353 +1,340 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>RiverGuard — Sofia flood operations</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RiverGuard — clear the river before it clears the street</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink:#0A1620; --bg:#0B1A26; --panel:#0E2030; --panel-2:#12283A; --panel-3:#16314699;
+    --ink:#0A1620; --bg:#0B1A26; --bg-2:#0c1f2e; --panel:#0E2030; --panel-2:#12283A;
     --line:#21394C; --line-soft:#1a2f40;
-    --text:#EAF1F5; --muted:#86A0B0; --faint:#5C7585;
-    --water:#3DB7E4; --water-dim:#246e92;
-    --critical:#FF6B5E; --medium:#F2A741; --low:#46D0A0;
-    --shadow:0 18px 50px -20px rgba(0,0,0,.7);
+    --water:#3DB7E4; --water-2:#4FD2E6; --water-dim:#246e92;
+    --critical:#FF6B5E; --amber:#F2A741; --low:#46D0A0;
+    --text:#dce9f3; --muted:#8aa6bb; --faint:#5d7589;
   }
   *{box-sizing:border-box}
-  button{font-family:inherit}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);
-    font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased;}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:"Space Grotesk",system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.5}
+  a{color:inherit;text-decoration:none}
   .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
-  #map{position:absolute;inset:58px 0 0 380px;background:var(--bg);z-index:1}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:2.5px;
+    text-transform:uppercase;color:var(--water);margin:0 0 18px}
 
-  /* ---------- command bar ---------- */
-  #cmd{position:absolute;top:0;left:0;right:0;height:58px;z-index:1200;
-    display:flex;align-items:center;gap:18px;padding:0 18px;
-    background:linear-gradient(180deg,#0E2433,#0C1E2C);border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:10px;min-width:340px}
-  .mark{width:30px;height:30px;border-radius:8px;flex:none;
-    background:linear-gradient(160deg,#2BA0CF,#176a8e);display:grid;place-items:center;
-    box-shadow:inset 0 1px 0 #7fd3f0,0 4px 12px -4px #1f8cc0}
-  .brand h1{font-size:16px;font-weight:700;letter-spacing:-.2px;margin:0}
-  .brand h1 span{color:var(--water)}
-  .brand .tag{font:600 10px/1 "IBM Plex Mono",monospace;letter-spacing:1.5px;color:var(--water);
-    border:1px solid var(--water-dim);border-radius:5px;padding:3px 6px;margin-left:2px}
+  /* ---- top nav ---- */
+  nav{position:sticky;top:0;z-index:50;backdrop-filter:blur(10px);
+    background:rgba(11,26,38,.78);border-bottom:1px solid var(--line-soft)}
+  nav .row{display:flex;align-items:center;gap:18px;height:62px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:18px;letter-spacing:-.2px}
+  .brand span{color:var(--water)}
+  .brand .mark{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+    background:linear-gradient(150deg,#1d6f9b,#0f3a52);box-shadow:0 0 0 1px #2f7ea433 inset}
+  .tag{font:600 9.5px/1 "IBM Plex Mono",monospace;letter-spacing:1.5px;color:var(--water);
+    border:1px solid var(--water-dim);border-radius:5px;padding:3px 6px;margin-left:1px}
+  .nav-links{display:flex;gap:22px;margin-left:auto;font-size:14px;color:var(--muted)}
+  .nav-links a:hover{color:var(--text)}
+  .btn{font-family:"Space Grotesk";font-weight:600;font-size:14px;border-radius:9px;
+    padding:10px 16px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    transition:transform .12s ease,background .15s ease}
+  .btn:hover{transform:translateY(-1px)}
+  .btn-primary{background:var(--water);color:#062130}
+  .btn-primary:hover{background:var(--water-2)}
+  .btn-ghost{background:transparent;border-color:var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--water-dim);background:#0f2535}
+  nav .btn{padding:8px 14px}
+  .nav-cta{margin-left:6px}
+  :focus-visible{outline:2px solid var(--water);outline-offset:3px;border-radius:6px}
 
-  #storm{display:flex;align-items:center;gap:9px;font-size:13px;color:#F4C77E;
-    background:#2A1F0E;border:1px solid #5a4316;border-radius:9px;padding:7px 13px;position:relative;overflow:hidden}
-  #storm .dot{width:7px;height:7px;border-radius:50%;background:var(--medium);flex:none;
-    box-shadow:0 0 0 0 rgba(242,167,65,.6);animation:pulse 2.4s infinite}
-  #storm b{color:#FFE0A8;font-weight:600}
-  #storm .demo{font:500 10px/1 "IBM Plex Mono",monospace;color:#caa86a;border:1px solid #5a4316;border-radius:4px;padding:2px 5px;letter-spacing:.5px}
-  #storm .wave{position:absolute;left:0;right:0;bottom:0;height:2px;
-    background:linear-gradient(90deg,transparent,var(--medium),transparent);
-    background-size:50% 100%;animation:flow 3.5s linear infinite;opacity:.7}
+  /* ---- hero ---- */
+  .hero{position:relative;overflow:hidden;padding:84px 0 0}
+  .storm{display:inline-flex;align-items:center;gap:9px;font-size:13px;color:#f3d9a6;
+    background:#2a200d;border:1px solid #5a4318;border-radius:999px;padding:7px 14px;margin-bottom:26px}
+  .storm .dot{width:8px;height:8px;border-radius:50%;background:var(--amber);box-shadow:0 0 0 4px #f2a74122}
+  .storm b{color:#ffe7b8;font-weight:600}
+  .storm .demo{font:600 9px/1 "IBM Plex Mono",monospace;letter-spacing:1px;color:#caa86a;
+    border:1px solid #5a4318;border-radius:4px;padding:3px 5px}
+  h1.head{font-size:clamp(34px,6vw,62px);line-height:1.04;letter-spacing:-1.4px;font-weight:700;
+    margin:0 0 22px;max-width:14ch}
+  h1.head em{font-style:normal;color:var(--water)}
+  .thesis{font-size:clamp(17px,2.2vw,21px);color:var(--text);max-width:46ch;margin:0 0 14px}
+  .thesis b{color:#fff;font-weight:600}
+  .thesis .big{color:var(--water-2)}
+  .thesis .save{color:var(--low)}
+  .sub{font-size:16px;color:var(--muted);max-width:54ch;margin:0 0 34px}
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;padding-bottom:64px}
+  .cta-row .hint{font-size:12.5px;color:var(--faint);margin-left:4px}
 
-  .spacer{flex:1}
-  .kpis{display:flex;gap:26px;padding-right:6px}
-  .kpi{text-align:right}
-  .kpi .l{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--faint)}
-  .kpi .v{font:600 17px/1.1 "IBM Plex Mono",monospace;margin-top:3px}
-  .kpi .v.crit{color:#FF9189}
+  .waves{position:absolute;left:0;right:0;bottom:-2px;height:200px;width:100%;z-index:-1;opacity:.5}
+  .waves path{animation:drift 14s linear infinite}
+  .waves path:nth-child(2){animation-duration:20s;animation-direction:reverse;opacity:.6}
+  .waves path:nth-child(3){animation-duration:28s;opacity:.4}
+  @keyframes drift{from{transform:translateX(0)}to{transform:translateX(-160px)}}
 
-  /* ---------- queue rail ---------- */
-  #rail{position:absolute;top:58px;left:0;bottom:0;width:380px;z-index:1100;
-    background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
-  .rail-head{padding:18px 18px 12px}
-  .rail-head h2{font-size:15px;font-weight:600;margin:0 0 3px}
-  .rail-head p{margin:0;font-size:12.5px;color:var(--muted)}
-  .queue{flex:1;overflow-y:auto;padding:4px 12px 12px}
-  .card{position:relative;display:block;width:100%;text-align:left;cursor:pointer;
-    background:var(--panel-2);border:1px solid var(--line-soft);border-left:3px solid var(--line);
-    border-radius:12px;padding:13px 14px;margin:8px 0;color:inherit;
-    transition:border-color .15s,transform .12s,background .15s}
-  .card:hover{background:#152D40;transform:translateY(-1px)}
-  .card:focus-visible{outline:2px solid var(--water);outline-offset:2px}
-  .card.sel{background:#163143;border-left-color:var(--water)}
-  .card.lv-critical{border-left-color:var(--critical)} .card.lv-medium{border-left-color:var(--medium)} .card.lv-low{border-left-color:var(--low)}
-  .card .top{display:flex;align-items:center;gap:9px}
-  .card .rank{font:600 12px/1 "IBM Plex Mono",monospace;color:var(--faint)}
-  .card .river{font-weight:600;font-size:14.5px;flex:1}
-  .pill{font:600 10px/1 "IBM Plex Mono",monospace;letter-spacing:.6px;text-transform:uppercase;
-    padding:4px 7px;border-radius:6px}
-  .pill.critical{color:#FFB3AD;background:#3a1714;border:1px solid #6e2a23}
-  .pill.medium{color:#F6CB87;background:#33260e;border:1px solid #6a521c}
-  .pill.low{color:#9DE9CC;background:#0f3328;border:1px solid #1d5d49}
-  .card .obs{font-size:12.5px;color:var(--muted);margin:8px 0 10px;line-height:1.45}
-  .card .save{display:flex;align-items:baseline;gap:8px}
-  .card .save .amt{font:600 16px/1 "IBM Plex Mono",monospace}
-  .card .save .x{font:500 11px/1 "IBM Plex Mono",monospace;color:var(--low);
-    border:1px solid #1d5d49;background:#0f2c23;border-radius:5px;padding:3px 6px}
-  .card .save .lbl{font-size:11px;color:var(--faint)}
+  section{padding:74px 0}
+  .section-head{margin-bottom:38px}
+  .section-head h2{font-size:clamp(24px,3.5vw,34px);letter-spacing:-.8px;margin:0;font-weight:600}
+  .section-head p{color:var(--muted);margin:10px 0 0;max-width:52ch}
 
-  .source{border-top:1px solid var(--line);padding:11px 18px;display:flex;flex-direction:column;gap:5px}
-  .source .t{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:var(--faint)}
-  .source .row{font:400 11.5px/1.5 "IBM Plex Mono",monospace;color:var(--muted)}
-  .source .row b{color:var(--water);font-weight:500}
+  /* ---- problem stats ---- */
+  .problem{background:linear-gradient(180deg,#0c1f2e,#0b1a26);border-top:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft)}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  .stat{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:24px}
+  .stat .n{font-family:"IBM Plex Mono",monospace;font-size:34px;font-weight:600;color:var(--water-2);letter-spacing:-1px}
+  .stat .t{color:var(--muted);font-size:14.5px;margin-top:8px}
 
-  /* ---------- detail drawer ---------- */
-  #detail{position:absolute;top:58px;right:0;bottom:0;width:400px;z-index:1150;
-    background:var(--panel);border-left:1px solid var(--line);box-shadow:var(--shadow);
-    transform:translateX(102%);transition:transform .28s cubic-bezier(.2,.7,.2,1);
-    overflow-y:auto}
-  #detail.open{transform:translateX(0)}
-  .d-head{position:sticky;top:0;background:linear-gradient(180deg,#0E2030,#0E2030f2);
-    backdrop-filter:blur(6px);padding:16px 18px 13px;border-bottom:1px solid var(--line);z-index:2}
-  .d-head .row1{display:flex;align-items:center;gap:9px}
-  .d-head .rank{font:600 12px/1 "IBM Plex Mono",monospace;color:var(--faint)}
-  .d-head h3{font-size:17px;font-weight:600;margin:0;flex:1}
-  .d-head .close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:6px}
-  .d-head .close:hover{color:var(--text);background:#1a3245}
-  .d-body{padding:16px 18px 26px}
-  .shot{position:relative;width:100%;aspect-ratio:1.5/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block}
-  .shot-wrap{position:relative;margin-bottom:6px}
-  .ai-chip{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;
-    font:500 11px/1 "IBM Plex Mono",monospace;color:#CFEcF8;background:#0a1b27cc;backdrop-filter:blur(4px);
-    border:1px solid #2a5f7a;border-radius:7px;padding:6px 9px}
-  .ai-chip .d{width:6px;height:6px;border-radius:50%;background:var(--water);box-shadow:0 0 8px var(--water)}
-  .verdict{font-size:14px;line-height:1.5;margin:14px 0 0}
-  .verdict .nar{font-family:"IBM Plex Mono",monospace;color:var(--critical);font-size:12.5px}
+  /* ---- how it works: the river spine ---- */
+  .flow{position:relative;padding-left:8px}
+  .flow::before{content:"";position:absolute;left:23px;top:14px;bottom:14px;width:2px;
+    background:linear-gradient(180deg,var(--water-dim),var(--water),var(--water-dim));opacity:.55}
+  .step{position:relative;display:grid;grid-template-columns:48px 1fr;gap:22px;padding:18px 0}
+  .node{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;z-index:2;
+    background:#0d2536;border:1.5px solid var(--water-dim);
+    font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--water-2);font-size:15px}
+  .step h3{margin:7px 0 6px;font-size:19px;font-weight:600;letter-spacing:-.3px}
+  .step p{margin:0;color:var(--muted);font-size:15px;max-width:60ch}
+  .step .src{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--faint);margin-top:7px;letter-spacing:.3px}
 
-  .label{font-size:10.5px;letter-spacing:1.3px;text-transform:uppercase;color:var(--faint);margin:22px 0 9px}
-  .label .sub{font-family:"IBM Plex Mono",monospace;letter-spacing:0;text-transform:none;color:var(--water-cyan,#4FD2E6)}
-  .exposure{display:flex;flex-direction:column;gap:1px;background:var(--line-soft);border-radius:10px;overflow:hidden;border:1px solid var(--line-soft)}
-  .ex-row{display:flex;align-items:center;gap:10px;background:var(--panel-2);padding:10px 12px;font-size:13px}
-  .ex-row .ic{width:7px;height:7px;border-radius:2px;background:var(--water);flex:none}
-  .ex-row .n{flex:1}
-  .ex-row .q{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:12px}
+  /* ---- live band ---- */
+  .live{background:linear-gradient(180deg,#0e2535,#0c1f2e);border-top:1px solid var(--line-soft);
+    border-bottom:1px solid var(--line-soft)}
+  .live .label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--low);margin-bottom:22px;display:flex;align-items:center;gap:9px}
+  .live .pulse{width:8px;height:8px;border-radius:50%;background:var(--low);box-shadow:0 0 0 0 #46d0a077;animation:beat 2.4s ease-out infinite}
+  @keyframes beat{0%{box-shadow:0 0 0 0 #46d0a066}70%{box-shadow:0 0 0 12px #46d0a000}100%{box-shadow:0 0 0 0 #46d0a000}}
+  .live-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  .lv{background:var(--panel);border:1px solid var(--line-soft);border-radius:14px;padding:22px}
+  .lv .v{font-family:"IBM Plex Mono",monospace;font-size:30px;font-weight:600;letter-spacing:-1px}
+  .lv .v.risk{color:var(--critical)} .lv .v.roi{color:var(--low)} .lv .v.site{color:var(--water-2)}
+  .lv .k{color:var(--muted);font-size:13.5px;margin-top:7px}
 
-  .econ{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .econ .box{border:1px solid var(--line);border-radius:12px;padding:13px}
-  .econ .box .l{font-size:11px;color:var(--muted);margin-bottom:7px}
-  .econ .box .a{font:600 21px/1 "IBM Plex Mono",monospace}
-  .econ .box.nothing{background:#2316130d;border-color:#5a2a25}
-  .econ .box.nothing .a{color:var(--critical)}
-  .econ .box.clear{background:#0f2c2308;border-color:#1d5d49}
-  .econ .box.clear .a{color:var(--low)}
-  .roi{display:flex;align-items:center;gap:10px;margin-top:12px;
-    background:linear-gradient(90deg,#0f2c23,#0e2030);border:1px solid #1d5d49;border-radius:12px;padding:12px 14px}
-  .roi .x{font:700 22px/1 "IBM Plex Mono",monospace;color:var(--low)}
-  .roi .t{font-size:12.5px;color:var(--muted);line-height:1.4}
-  .method{font-size:10.5px;color:var(--faint);margin-top:8px}
+  /* ---- data/method ---- */
+  .sources{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .src-row{display:flex;align-items:baseline;gap:14px;padding:16px 18px;background:var(--panel);
+    border:1px solid var(--line-soft);border-radius:12px}
+  .src-row .name{font-weight:600;min-width:140px}
+  .src-row .desc{color:var(--muted);font-size:14px}
+  .method-note{margin-top:22px;color:var(--faint);font-size:13.5px;max-width:70ch;
+    border-left:2px solid var(--line);padding-left:14px}
 
-  .ticket{font:400 12px/1.6 "IBM Plex Mono",monospace;color:#BFD6E2;white-space:pre-wrap;
-    background:#0A1924;border:1px dashed #2a4659;border-radius:10px;padding:13px;margin-top:2px}
-  .copy{margin-top:10px;width:100%;cursor:pointer;font:600 13px/1 "Space Grotesk";
-    color:#0A1620;background:var(--water);border:none;border-radius:10px;padding:11px;transition:filter .15s}
-  .copy:hover{filter:brightness(1.08)}
-  .copy:focus-visible{outline:2px solid #fff;outline-offset:2px}
-  .copy.done{background:var(--low)}
+  /* ---- final CTA ---- */
+  .final{text-align:center;padding:88px 0}
+  .final h2{font-size:clamp(26px,4vw,40px);letter-spacing:-1px;margin:0 0 14px}
+  .final p{color:var(--muted);max-width:46ch;margin:0 auto 30px}
+  .signup{display:flex;gap:10px;max-width:420px;margin:0 auto 18px}
+  .signup input{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:9px;
+    padding:12px 14px;color:var(--text);font-family:inherit;font-size:14px}
+  .signup input::placeholder{color:var(--faint)}
+  .signup .ok{color:var(--low);font-size:14px;align-self:center}
+  .or{color:var(--faint);font-size:13px;margin:18px 0 22px}
 
-  /* ---------- map bits ---------- */
-  .mk{width:16px;height:16px;border-radius:50%;border:2.5px solid #0A1620;box-shadow:0 2px 6px rgba(0,0,0,.6)}
-  .mk-critical{background:var(--critical)} .mk-medium{background:var(--medium)} .mk-low{background:var(--low)}
-  .mk-sel{outline:3px solid #ffffffcc;outline-offset:2px}
-  .mk-pulse{animation:mkpulse 2s infinite}
-  @keyframes mkpulse{0%{box-shadow:0 0 0 0 rgba(255,107,94,.55)}70%{box-shadow:0 0 0 14px rgba(255,107,94,0)}100%{box-shadow:0 0 0 0 rgba(255,107,94,0)}}
-  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,167,65,.6)}70%{box-shadow:0 0 0 7px rgba(242,167,65,0)}100%{box-shadow:0 0 0 0 rgba(242,167,65,0)}}
-  @keyframes flow{0%{background-position:-50% 0}100%{background-position:150% 0}}
+  footer{border-top:1px solid var(--line-soft);padding:30px 0;color:var(--faint);font-size:13px}
+  footer .row{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;justify-content:space-between}
+  footer b{color:var(--muted);font-weight:600}
 
-  .legend{position:absolute;left:396px;bottom:16px;z-index:1000;display:flex;gap:14px;
-    background:#0c1c2ad9;backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
-  .legend span{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-  .legend i{width:9px;height:9px;border-radius:50%}
-  .leaflet-control-attribution{background:#0a1620cc!important;color:#5C7585!important}
-  .leaflet-control-attribution a{color:#86A0B0!important}
-
-  /* ---------- phone: map + bottom sheets ---------- */
   @media (max-width:760px){
-    #cmd{height:auto;min-height:50px;flex-wrap:wrap;align-items:center;gap:7px 12px;padding:9px 13px}
-    .brand{min-width:0;flex:1 1 auto;gap:8px}
-    .brand h1{font-size:15px}.brand .tag{display:none}
-    .spacer{display:none}
-    .kpis{gap:16px;flex:0 0 auto}
-    .kpi .l{font-size:8px;letter-spacing:.8px}.kpi .v{font-size:13.5px}
-    #storm{order:10;flex-basis:100%;justify-content:center;font-size:11.5px;padding:6px 10px}
-
-    #map{inset:88px 0 0 0}
-    .leaflet-bottom.leaflet-right{bottom:calc(44vh + 6px)}
-
-    #rail{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:44vh;
-      border-right:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;
-      box-shadow:0 -14px 44px rgba(0,0,0,.6);z-index:1100}
-    #rail::before,#detail::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);
-      width:38px;height:4px;border-radius:2px;background:#2c4658;z-index:5}
-    .rail-head{padding:17px 16px 8px}
-    .source{display:none}
-
-    #detail{top:auto;bottom:0;left:0;right:0;width:auto;height:90vh;
-      border-left:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;
-      transform:translateY(103%)}
-    #detail.open{transform:translateY(0)}
-    .d-head{padding-top:18px}
-    .econ .box .a{font-size:19px}
-    .legend{left:12px;bottom:calc(44vh + 12px);padding:7px 10px;gap:11px}
-    .legend span{font-size:11px}
+    .nav-links{display:none}
+    .stats,.live-grid,.sources{grid-template-columns:1fr}
+    .live-grid{grid-template-columns:1fr 1fr}
+    .hero{padding-top:54px}
+    section{padding:54px 0}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
-  <header id="cmd">
-    <div class="brand">
-      <div class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 14c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 2.8 2M4 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2" stroke="#eaf6ff" stroke-width="1.7" stroke-linecap="round"/></svg></div>
-      <h1>River<span>Guard</span></h1><span class="tag">SOFIA</span>
-    </div>
-    <div id="storm"></div>
-    <div class="spacer"></div>
-    <div class="kpis" id="kpis"></div>
-  </header>
 
-  <aside id="rail">
-    <div class="rail-head">
-      <h2>Operations queue</h2>
-      <p id="rail-sub">Sites to clear before the storm</p>
+<nav>
+  <div class="wrap row">
+    <a class="brand" href="#top">
+      <span class="mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 14c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2 2.2 2 2.8 2M4 18c2.2 0 2.2-2 4.4-2s2.2 2 4.4 2 2.2-2 4.4-2" stroke="#eaf6ff" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      River<span>Guard</span></a>
+    <span class="tag">SOFIA</span>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#live">Live now</a>
+      <a href="#data">Data &amp; method</a>
     </div>
-    <div class="queue" id="queue"></div>
-    <div class="source">
-      <div class="t">Live data sources</div>
-      <div class="row"><b>OpenStreetMap</b> rivers &amp; assets · <b>Esri</b> imagery</div>
-      <div class="row"><b>Open-Meteo</b> forecast · <b>JRC</b> damage model</div>
-    </div>
-  </aside>
-
-  <div id="map"></div>
-  <div class="legend">
-    <span><i style="background:var(--critical)"></i>Critical</span>
-    <span><i style="background:var(--medium)"></i>Watch</span>
-    <span><i style="background:var(--low)"></i>Low</span>
+    <a class="btn btn-primary nav-cta" href="./console.html">Open live console →</a>
   </div>
+</nav>
 
-  <aside id="detail"><div id="d-content"></div></aside>
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="storm" id="storm"><span class="dot"></span><span>Forecast loading…</span></div>
+    <p class="eyebrow">Perlovska · Vladayska · Suhodolska · Slatinska</p>
+    <h1 class="head">Clear the river before it <em>clears the street.</em></h1>
+    <p class="thesis" id="thesis">A blocked channel turns ordinary rain into a flood. RiverGuard finds the blockage first.</p>
+    <p class="sub">Forecast the storm, scan every river from satellite, model the flood on real terrain, and hand crews a ranked work list — all before the first drop falls.</p>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="./console.html">Open live console →</a>
+      <a class="btn btn-ghost" href="#how">See how it works ↓</a>
+      <span class="hint mono" id="updated"></span>
+    </div>
+  </div>
+  <svg class="waves" viewBox="0 0 1440 200" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0,80 C180,40 360,120 540,90 C720,60 900,130 1080,95 C1260,65 1440,110 1620,85 L1620,200 L0,200 Z" fill="#123247"/>
+    <path d="M0,110 C200,80 380,150 560,120 C760,88 920,150 1120,118 C1300,92 1460,140 1620,118 L1620,200 L0,200 Z" fill="#0f2a3c"/>
+    <path d="M0,140 C220,118 400,170 600,150 C800,130 980,175 1180,150 C1340,130 1500,165 1620,150 L1620,200 L0,200 Z" fill="#0c2233"/>
+  </svg>
+</header>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<section class="problem">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Why it matters</p>
+      <h2>Sofia floods on a clock no one is watching.</h2>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n">~20 yr</div><div class="t">between major floods in Sofia — long enough to forget, short enough to keep happening.</div></div>
+      <div class="stat"><div class="n">~10%</div><div class="t">of Sofia homes carry flood insurance. The rest absorb the loss directly.</div></div>
+      <div class="stat"><div class="n">€450</div><div class="t">to clear one blocked channel — against millions once it overflows.</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">How it works</p>
+      <h2>Four steps, from forecast to crew.</h2>
+      <p>Everything runs ahead of the storm, so the fix lands while it is still cheap.</p>
+    </div>
+    <div class="flow">
+      <div class="step">
+        <div class="node">01</div>
+        <div><h3>Watch the sky</h3>
+          <p>Pull the rain forecast for Sofia. A heavy-rain window arms the system and starts the clock.</p>
+          <div class="src">Open-Meteo forecast</div></div>
+      </div>
+      <div class="step">
+        <div class="node">02</div>
+        <div><h3>Scan every river</h3>
+          <p>Walk the river network and, at each point, an AI compares the live satellite view against the map — flagging channels choked by debris, dumping, or overgrowth.</p>
+          <div class="src">Esri imagery · OpenStreetMap · vision model</div></div>
+      </div>
+      <div class="step">
+        <div class="node">03</div>
+        <div><h3>Model the flood</h3>
+          <p>Pull the real terrain around each blockage and spread the backed-up water over the actual low ground — to see which blocks and roads go under, not a guess-circle.</p>
+          <div class="src">Copernicus GLO-90 elevation · bathtub inundation</div></div>
+      </div>
+      <div class="step">
+        <div class="node">04</div>
+        <div><h3>Send the crews</h3>
+          <p>Rank every site by the euros of damage it prevents, then output a work order: where to go, what to clear, and by when.</p>
+          <div class="src">EU JRC depth-damage curves · dispatch ticket</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="live" id="live">
+  <div class="wrap">
+    <div class="label"><span class="pulse"></span><span id="live-label">Live from the latest Sofia scan</span></div>
+    <div class="live-grid">
+      <div class="lv"><div class="v risk" id="lv-risk">—</div><div class="k">flood damage at risk</div></div>
+      <div class="lv"><div class="v roi" id="lv-roi">—</div><div class="k">return per €1 of cleanup</div></div>
+      <div class="lv"><div class="v site" id="lv-sites">—</div><div class="k">active sites found</div></div>
+      <div class="lv"><div class="v" id="lv-clear">—</div><div class="k">total cleanup cost</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="data">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Data &amp; method</p>
+      <h2>Public data, stated plainly.</h2>
+      <p>Every layer is open and checkable. No black boxes.</p>
+    </div>
+    <div class="sources">
+      <div class="src-row"><span class="name">OpenStreetMap</span><span class="desc">river network, buildings, roads, hospitals &amp; stations</span></div>
+      <div class="src-row"><span class="name">Esri World Imagery</span><span class="desc">satellite view for each inspection point</span></div>
+      <div class="src-row"><span class="name">Open-Meteo</span><span class="desc">rain forecast and terrain elevation</span></div>
+      <div class="src-row"><span class="name">Copernicus GLO-90</span><span class="desc">digital terrain for the flood model</span></div>
+      <div class="src-row"><span class="name">EU JRC (Huizinga 2017)</span><span class="desc">depth-damage curves behind every € figure</span></div>
+      <div class="src-row"><span class="name">Vision AI</span><span class="desc">reads satellite vs map to spot blocked channels</span></div>
+    </div>
+    <p class="method-note">Flood depth is a first-order estimate from rainfall and the measured blockage; the spread is a bathtub inundation over real terrain, not a full hydrodynamic solve. The terrain, imagery, assets and damage curves are real — the water physics is a transparent MVP, and we say so.</p>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <h2>The next storm is already on a timer.</h2>
+    <p>See where Sofia floods next — and what €450 can stop.</p>
+    <div class="signup" id="signup">
+      <input type="email" id="email" placeholder="you@city.bg" aria-label="Email for storm alerts">
+      <button class="btn btn-ghost" id="notify">Notify me</button>
+    </div>
+    <div class="or">or jump straight in</div>
+    <a class="btn btn-primary" href="./console.html" style="font-size:15px;padding:13px 22px">Open live console →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap row">
+    <span>Built for <b>Hack Smart Sofia</b> — Sponge City &amp; Urban Rivers</span>
+    <span class="mono">OpenStreetMap · Esri · Open-Meteo · Copernicus · EU&nbsp;JRC</span>
+  </div>
+</footer>
+
 <script>
-const map = L.map("map",{zoomControl:false,attributionControl:true}).setView([42.69,23.35],12);
-L.control.zoom({position:"bottomright"}).addTo(map);
-L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",{
-  attribution:'&copy; OpenStreetMap &copy; CARTO',maxZoom:19}).addTo(map);
+  const eur=(n)=>{n=+n||0;
+    if(n>=1e6)return "€"+(n/1e6).toFixed(2).replace(/\.00$/,"")+"M";
+    if(n>=1e3)return "€"+Math.round(n/1e3)+"k";
+    return "€"+Math.round(n);};
 
-const RISK = {critical:"critical",high:"critical",medium:"medium",low:"low"};
-const eurFull  = n => "€"+Math.round(n).toLocaleString("en-US");
-const eurShort = n => n>=1e6 ? "€"+(n/1e6).toFixed(2)+"M" : n>=1e3 ? "€"+Math.round(n/1e3)+"k" : "€"+Math.round(n);
+  fetch("./scenario.json").then(r=>r.json()).then(s=>{
+    const pts=s.points||[];
+    const dmg=pts.reduce((a,p)=>a+((p.roi&&p.roi.damage_eur)||0),0);
+    const clr=pts.reduce((a,p)=>a+((p.roi&&p.roi.clearing_cost_eur)||0),0);
+    const ratio=clr?Math.round(dmg/clr):0;
+    const sites=(s.summary&&s.summary.points_total)||pts.length;
 
-let registry = [], selected = null, floodLayer = null;
+    // hero thesis (live asymmetry)
+    if(pts.length){
+      document.getElementById("thesis").innerHTML =
+        `Right now, <b class="big">${eur(dmg)}</b> of flood damage is backed up behind `+
+        `<b class="save">${eur(clr)}</b> of cleanup — a <b>×${ratio}</b> return on acting early.`;
+    }
+    // live band
+    document.getElementById("lv-risk").textContent  = eur(dmg);
+    document.getElementById("lv-roi").textContent   = "×"+ratio;
+    document.getElementById("lv-sites").textContent = sites;
+    document.getElementById("lv-clear").textContent = eur(clr);
 
-fetch("./scenario.json").then(r=>r.json()).then(data=>{
-  renderStorm(data.forecast);
-  renderKpis(data.summary);
-  drawRivers(data.rivers||[]);
-  buildQueue(data.points||[], data.summary);
-  if(registry[0] && window.matchMedia("(min-width:761px)").matches) select(registry[0]);
-});
-
-function renderStorm(f){
-  const el=document.getElementById("storm");
-  if(!f||!f.event){el.innerHTML='<span class="dot"></span>No storm in the current forecast';return;}
-  const e=f.event, demo=f.synthetic?'<span class="demo">DEMO</span>':'';
-  el.innerHTML=`<span class="dot"></span>Heavy rain in <b>${e.lead_time_h} h</b> · `+
-    `<b>${e.total_mm} mm</b> · severity <b>${f.severity}</b> ${demo}<span class="wave"></span>`;
-}
-function renderKpis(s){
-  if(!s)return;
-  document.getElementById("kpis").innerHTML=
-    `<div class="kpi"><div class="l">Damage at risk</div><div class="v crit">${eurShort(s.damage_at_risk_eur)}</div></div>`+
-    `<div class="kpi"><div class="l">Obstructions</div><div class="v">${s.points_total} · ${s.critical_count} crit</div></div>`;
-}
-function drawRivers(rivers){
-  const all=[];
-  rivers.forEach(r=>{
-    const c=r.geometry&&r.geometry.coordinates; if(!c||c.length<2)return;
-    const latlngs=c.map(p=>[p[1],p[0]]); all.push(...latlngs);
-    L.polyline(latlngs,{color:"#3DB7E4",weight:2.4,opacity:.8,lineJoin:"round"}).addTo(map);
+    // storm chip
+    const f=s.forecast||{}, e=f.event||f;
+    if(e&&e.lead_time_h!=null){
+      const demo=(f.demo||e.demo)?`<span class="demo">DEMO</span>`:"";
+      document.getElementById("storm").innerHTML =
+        `<span class="dot"></span><span>Heavy rain in <b>${e.lead_time_h} h</b> · <b>${e.total_mm} mm</b> · severity <b>${f.severity||"—"}</b></span> ${demo}`;
+    }
+    const gen=(s.meta&&s.meta.generated_at)||s.generated_at;
+    if(gen){
+      const d=new Date(gen);
+      if(!isNaN(d)) document.getElementById("updated").textContent="scan: "+d.toISOString().slice(0,16).replace("T"," ")+" UTC";
+    }
+  }).catch(()=>{
+    document.getElementById("storm").innerHTML='<span class="dot"></span><span>Open the console for the latest scan</span>';
+    document.getElementById("live-label").textContent="Open the console to run the latest Sofia scan";
   });
-  if(all.length)map.fitBounds(L.latLngBounds(all).pad(.08));
-}
-function buildQueue(points, summary){
-  document.getElementById("rail-sub").textContent =
-    `${points.length} site${points.length!==1?"s":""} · sorted by money saved`;
-  const q=document.getElementById("queue"); q.innerHTML="";
-  points.forEach((p,i)=>{
-    const lv=RISK[p.risk.level]||"medium";
-    const card=document.createElement("button");
-    card.className=`card lv-${lv}`;
-    card.innerHTML=`
-      <div class="top"><span class="rank">#${i+1}</span><span class="river">${p.river_name}</span>
-        <span class="pill ${lv}">${p.risk.level}</span></div>
-      <div class="obs">${p.obstruction.label}</div>
-      <div class="save"><span class="amt">${eurShort(p.roi.damage_eur)}</span>
-        <span class="x">×${p.roi.ratio}</span><span class="lbl">prevented for ${eurFull(p.roi.clearing_cost_eur)}</span></div>`;
-    const marker=L.marker([p.lat,p.lon],{icon:mkIcon(lv,lv==="critical")}).addTo(map);
-    const entry={p,card,marker,lv,rank:i+1};
-    card.onclick=()=>select(entry);
-    marker.on("click",()=>select(entry));
-    q.appendChild(card); registry.push(entry);
-  });
-}
-function mkIcon(lv,pulse){
-  return L.divIcon({className:"",iconSize:[16,16],iconAnchor:[8,8],
-    html:`<div class="mk mk-${lv} ${pulse?"mk-pulse":""}"></div>`});
-}
-function select(entry){
-  if(selected){selected.card.classList.remove("sel");mkEl(selected)&&mkEl(selected).classList.remove("mk-sel");}
-  selected=entry; entry.card.classList.add("sel");
-  const el=mkEl(entry); el&&el.classList.add("mk-sel");
-  drawFlood(entry);
-  map.panTo([entry.p.lat,entry.p.lon],{animate:true});
-  renderDetail(entry); document.getElementById("detail").classList.add("open");
-}
-function drawFlood(entry){
-  if(floodLayer){map.removeLayer(floodLayer);floodLayer=null;}
-  const poly=entry.p.flood&&entry.p.flood.polygon;
-  if(!poly||poly.length<3)return;
-  floodLayer=L.polygon(poly,{color:"#4FD2E6",weight:1.4,opacity:.85,
-    fillColor:"#37AECB",fillOpacity:.20,dashArray:"4 4",className:"flood-zone"}).addTo(map);
-}
-function mkEl(entry){return entry.marker._icon?entry.marker._icon.querySelector(".mk"):null;}
 
-function renderDetail(entry){
-  const p=entry.p, lv=entry.lv, o=p.obstruction, r=p.roi, ex=p.exposure;
-  const conf=o.confidence?` · ${Math.round(o.confidence*100)}%`:"";
-  const shot=o.image_after?`<div class="shot-wrap"><img class="shot" src="${o.image_after}" onerror="this.parentNode.style.display='none'">
-      <div class="ai-chip"><span class="d"></span>AI · ${o.detected_by||"vision"}${conf}</div></div>`:"";
-  const assets=(ex.critical_assets||[]).map(a=>
-    `<div class="ex-row"><span class="ic"></span><span class="n">${a.name}</span><span class="q">${a.type.replace(/_/g," ")}</span></div>`).join("");
-  const fl=p.flood;
-  const floodHead=fl?`<div class="label">If it overflows <span class="sub">· flood zone ${fl.area_ha} ha · water ${fl.depth_m} m</span></div>`
-                    :`<div class="label">If it overflows</div>`;
-  document.getElementById("d-content").innerHTML=`
-    <div class="d-head"><div class="row1"><span class="rank">#${entry.rank}</span>
-      <h3>${p.river_name}</h3><span class="pill ${lv}">${p.risk.level}</span>
-      <button class="close" onclick="document.getElementById('detail').classList.remove('open')">&times;</button></div></div>
-    <div class="d-body">
-      ${shot}
-      <p class="verdict">${o.label}. <span class="nar">channel −${o.channel_narrowing_pct}%</span></p>
-
-      ${floodHead}
-      <div class="exposure">${assets}
-        <div class="ex-row"><span class="ic"></span><span class="n">Buildings exposed</span><span class="q">${ex.buildings}</span></div>
-        <div class="ex-row"><span class="ic"></span><span class="n">Road affected</span><span class="q">${ex.road_m} m</span></div></div>
-      ${fl?`<div class="method">Flood zone from ${fl.method}.</div>`:""}
-
-      <div class="label">The economics</div>
-      <div class="econ">
-        <div class="box nothing"><div class="l">Do nothing</div><div class="a">${eurShort(r.damage_eur)}</div></div>
-        <div class="box clear"><div class="l">Clear now</div><div class="a">${eurFull(r.clearing_cost_eur)}</div></div></div>
-      <div class="roi"><span class="x">×${r.ratio}</span><span class="t">Every €1 spent clearing this site prevents about €${r.ratio} of flood damage.</span></div>
-      ${r.method?`<div class="method">Damage estimated with ${r.method}.</div>`:""}
-
-      <div class="label">Work order</div>
-      <div class="ticket">${p.dispatch.ticket_text}\ndeadline: ${p.dispatch.deadline||"before the rain"}</div>
-      <button class="copy" id="copyBtn">Copy work order</button>
-    </div>`;
-  const btn=document.getElementById("copyBtn");
-  btn.onclick=()=>{navigator.clipboard.writeText(p.dispatch.ticket_text+"\ndeadline: "+(p.dispatch.deadline||"before the rain"))
-    .then(()=>{btn.textContent="Copied";btn.classList.add("done");setTimeout(()=>{btn.textContent="Copy work order";btn.classList.remove("done")},1600)});};
-}
+  // email capture (no backend; remembers on this device)
+  const notify=document.getElementById("notify"), email=document.getElementById("email");
+  notify.onclick=()=>{
+    const v=(email.value||"").trim();
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){email.focus();email.style.borderColor="#FF6B5E";return;}
+    try{localStorage.setItem("rg_alert_email",v);}catch(e){}
+    document.getElementById("signup").innerHTML='<div class="ok">✓ You\'re on the list — we\'ll flag the next heavy-rain window for Sofia.</div>';
+  };
+  email&&email.addEventListener("keydown",ev=>{if(ev.key==="Enter")notify.click();});
 </script>
 </body>
 </html>
