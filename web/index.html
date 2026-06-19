@@ -157,9 +157,35 @@
   .leaflet-control-attribution{background:#0a1620cc!important;color:#5C7585!important}
   .leaflet-control-attribution a{color:#86A0B0!important}
 
-  @media (max-width:900px){
-    #rail{width:100%;bottom:auto;height:auto;max-height:46%;border-right:none;border-bottom:1px solid var(--line)}
-    #map{inset:58px 0 0 0}#detail{width:100%}.legend{left:12px}.brand{min-width:0}.kpis{display:none}
+  /* ---------- phone: map + bottom sheets ---------- */
+  @media (max-width:760px){
+    #cmd{height:auto;min-height:50px;flex-wrap:wrap;align-items:center;gap:7px 12px;padding:9px 13px}
+    .brand{min-width:0;flex:1 1 auto;gap:8px}
+    .brand h1{font-size:15px}.brand .tag{display:none}
+    .spacer{display:none}
+    .kpis{gap:16px;flex:0 0 auto}
+    .kpi .l{font-size:8px;letter-spacing:.8px}.kpi .v{font-size:13.5px}
+    #storm{order:10;flex-basis:100%;justify-content:center;font-size:11.5px;padding:6px 10px}
+
+    #map{inset:88px 0 0 0}
+    .leaflet-bottom.leaflet-right{bottom:calc(44vh + 6px)}
+
+    #rail{position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;height:44vh;
+      border-right:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+      box-shadow:0 -14px 44px rgba(0,0,0,.6);z-index:1100}
+    #rail::before,#detail::before{content:"";position:absolute;top:7px;left:50%;transform:translateX(-50%);
+      width:38px;height:4px;border-radius:2px;background:#2c4658;z-index:5}
+    .rail-head{padding:17px 16px 8px}
+    .source{display:none}
+
+    #detail{top:auto;bottom:0;left:0;right:0;width:auto;height:90vh;
+      border-left:none;border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+      transform:translateY(103%)}
+    #detail.open{transform:translateY(0)}
+    .d-head{padding-top:18px}
+    .econ .box .a{font-size:19px}
+    .legend{left:12px;bottom:calc(44vh + 12px);padding:7px 10px;gap:11px}
+    .legend span{font-size:11px}
   }
   @media (prefers-reduced-motion:reduce){*{animation:none!important}}
 </style>
@@ -215,7 +241,7 @@ fetch("./scenario.json").then(r=>r.json()).then(data=>{
   renderKpis(data.summary);
   drawRivers(data.rivers||[]);
   buildQueue(data.points||[], data.summary);
-  if(registry[0]) select(registry[0]);
+  if(registry[0] && window.matchMedia("(min-width:761px)").matches) select(registry[0]);
 });
 
 function renderStorm(f){

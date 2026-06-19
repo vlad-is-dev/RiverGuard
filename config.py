@@ -27,9 +27,24 @@ CLEARING_DEFAULT_HOURS = 3
 FLOOD_RADIUS_M = 200   # assets within this radius of a point are in its flood-impact zone
 
 # --- AI detection (OpenRouter) ---
-# "openrouter/free" auto-picks a free model that fits the request (incl. vision).
-# Or set a specific free multimodal slug from openrouter.ai/models (ends in ":free").
-VISION_MODEL = "openrouter/free"
+# Several FREE multimodal (vision) models. detect.py tries them in order and moves
+# to the next on a rate-limit (429) or error, so load is spread and one model being
+# busy doesn't block a scan. Verify/replace slugs at openrouter.ai/models (Free + image input).
+VISION_MODELS = [
+    "google/gemma-4-31b-it:free",
+    "meta-llama/llama-4-maverick:free",
+    "qwen/qwen2.5-vl-32b-instruct:free",
+]
+
+# --- Auto-discovery of obstruction sites ---
+SCAN_SPACING_M = 700      # drop an inspection point every ~700 m along the rivers
+SCAN_MAX_POINTS = 6       # cap total AI scans per run (free-tier friendly)
+SCAN_DELAY_S = 4          # pause between scans to stay under the free rate limit
+MIN_NARROWING_PCT = 35    # keep a site only if the channel is >= this % blocked
+SCAN_SEEDS = [            # known hotspots, always inspected
+    {"lat": 42.685, "lon": 23.345, "river_name": "Perlovska"},
+    {"lat": 42.690, "lon": 23.300, "river_name": "Vladayska"},
+]
 
 # --- Currency ---
 EUR_TO_BGN = 1.95583

@@ -1,0 +1,34 @@
+{
+  "42.69201,23.34336": {
+    "type": "clear"
+  },
+  "42.69561,23.29753": {
+    "type": "clear"
+  },
+  "42.70601,23.36121": {
+    "type": "clear"
+  },
+  "42.70656,23.24538": {
+    "type": "vegetation",
+    "label": "river channel heavily overgrown with dense vegetation",
+    "channel_narrowing_pct": 60,
+    "detected_by": "vision (map vs satellite)",
+    "confidence": 0.9,
+    "image_after": "tiles/S3.jpg"
+  },
+  "42.70582,23.25141": {
+    "type": "clear"
+  },
+  "42.70672,23.25880": {
+    "type": "clear"
+  },
+  "42.70770,23.26691": {
+    "type": "clear"
+  },
+  "42.70955,23.27210": {
+    "type": "clear"
+  },
+  "42.68630,23.33075": {
+    "type": "clear"
+  }
+}

@@ -27,9 +27,9 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
-    from config import VISION_MODEL
+    from config import VISION_MODELS
 except Exception:
-    VISION_MODEL = "openrouter/free"
+    VISION_MODELS = ["openrouter/free"]
 
 ROOT = Path(__file__).resolve().parent
 TILES = ROOT / "web" / "tiles"
@@ -117,20 +117,30 @@ def _parse_json(text: str) -> dict:
     raise ValueError(f"no JSON in model reply: {text[:200]}")
 
 
-def analyze(image_paths, prompt, api_key, model=VISION_MODEL) -> dict:
-    """Send the text prompt first, then one or more images (OpenRouter format)."""
+def analyze(image_paths, prompt, api_key, models=None) -> dict:
+    """Send the text prompt first, then the image(s). Try each free vision model in
+    turn; if one is rate-limited (429) or errors, move to the next so load spreads."""
+    models = models or VISION_MODELS
     content = [{"type": "text", "text": prompt}]
     for p in image_paths:
         content.append({"type": "image_url",
                         "image_url": {"url": f"data:image/jpeg;base64,{_b64(p)}"}})
-    body = {"model": model, "messages": [{"role": "user", "content": content}]}
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-    resp = requests.post(OPENROUTER, headers=headers, json=body, timeout=120)
-    resp.raise_for_status()
-    data = resp.json()
-    if "choices" not in data:                      # OpenRouter returned an error object
-        raise RuntimeError(f"OpenRouter: {data.get('error', data)}")
-    return _parse_json(data["choices"][0]["message"]["content"])
+
+    last_error = None
+    for model in models:
+        try:
+            body = {"model": model, "messages": [{"role": "user", "content": content}]}
+            resp = requests.post(OPENROUTER, headers=headers, json=body, timeout=120)
+            resp.raise_for_status()
+            data = resp.json()
+            if "choices" not in data:
+                raise RuntimeError(f"OpenRouter: {data.get('error', data)}")
+            return _parse_json(data["choices"][0]["message"]["content"])
+        except Exception as exc:
+            last_error = exc
+            continue  # try the next free model
+    raise last_error if last_error else RuntimeError("no vision model available")
 
 
 def detect_obstruction(point_id, lat, lon, api_key, provided_image=None) -> dict | None:
@@ -149,15 +159,10 @@ def detect_obstruction(point_id, lat, lon, api_key, provided_image=None) -> dict
         print(f"[detect] {point_id} image fetch failed: {exc}", file=sys.stderr)
         return None
 
-    result = None
-    for attempt in range(3):
-        try:
-            result = analyze(imgs, prompt, api_key)
-            break
-        except Exception as exc:
-            print(f"[detect] {point_id} model attempt {attempt + 1}/3: {exc}", file=sys.stderr)
-            time.sleep(3)
-    if result is None:
+    try:
+        result = analyze(imgs, prompt, api_key)
+    except Exception as exc:
+        print(f"[detect] {point_id}: {exc}", file=sys.stderr)
         return None
 
     return {

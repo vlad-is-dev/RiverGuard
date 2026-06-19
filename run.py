@@ -13,11 +13,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from weather import build_forecast_block
-from config import AOI_BBOX, CLEARING_CREW_COST_BGN_PER_HOUR, CLEARING_DEFAULT_HOURS
+from config import AOI_BBOX, CLEARING_CREW_COST_BGN_PER_HOUR, CLEARING_DEFAULT_HOURS, SCAN_SEEDS
 import osm
 import exposure as exp_mod
 import damage as damage_mod
 import detect
+import discover
 
 CLEARING_COST_EUR = round(CLEARING_CREW_COST_BGN_PER_HOUR * CLEARING_DEFAULT_HOURS)
 
@@ -90,31 +91,56 @@ def _ticket_text(crew, lat, lon, obstruction_label, damage_eur):
             f"rain. Prevents ~{damage_eur:,} EUR damage.")
 
 
-def build_point(p, deadline, real_rivers, assets, api_key=None):
+def estimate_depth_m(total_mm, narrowing_pct):
+    """Flood depth estimate from forecast rainfall and AI-measured channel blockage.
+    A transparent proxy until ПУРН/DEM hydraulic modelling is wired in."""
+    base = (total_mm or 30) / 50.0                 # 42 mm -> ~0.84 m baseline
+    return round(base * (0.5 + (narrowing_pct or 40) / 100.0), 2)
+
+
+def _level_from_narrowing(pct):
+    if pct >= 60:
+        return "critical"
+    if pct >= 35:
+        return "medium"
+    return "low"
+
+
+def point_from_discovery(i, found):
+    """Turn an auto-discovered obstruction into a point the pipeline can build."""
+    c, o = found["candidate"], found["obstruction"]
+    nar = int(o.get("channel_narrowing_pct", 40) or 40)
+    return {
+        "id": f"P{i + 1}",
+        "river_id": (c["river_name"] or "river").lower().replace(" ", "_"),
+        "river_name": c["river_name"] or "River",
+        "lat": c["lat"], "lon": c["lon"],
+        "crew": f"Crew {i + 1}",
+        "obstruction": o,
+        "risk": {"score": min(99, 40 + round(nar * 0.6)),
+                 "level": _level_from_narrowing(nar), "flood_depth_m": 1.0},
+        "fallback_exposure": {"buildings": 10, "road_m": 120, "critical_assets": []},
+    }
+
+
+def build_point(p, deadline, real_rivers, assets, storm_mm):
     # snap onto the real riverbed
     if real_rivers:
         snapped = osm.nearest_on_rivers(p["lat"], p["lon"], real_rivers)
         if snapped:
             p["lat"], p["lon"] = round(snapped[0], 6), round(snapped[1], 6)
 
-    # AI detection: a vision model inspects the river image and reports the blockage.
-    # Uses a real photo at web/tiles/<id>_input.jpg if present, else a satellite tile.
-    obstruction = p["obstruction"]
-    if api_key:
-        provided = detect.TILES / f"{p['id']}_input.jpg"
-        result = detect.detect_obstruction(
-            p["id"], p["lat"], p["lon"], api_key,
-            provided_image=provided if provided.exists() else None)
-        if result and result.get("type") not in (None, "clear"):
-            obstruction = result
+    obstruction = p["obstruction"]  # already set by discovery (vision) or seed (manual)
 
     # real exposure from OSM, with offline fallback
     exposure = exp_mod.compute_exposure(p["lat"], p["lon"], assets) if assets else {}
     if not exp_mod.has_data(exposure):
         exposure = p["fallback_exposure"]
 
-    # damage from JRC depth-damage curves at the point's flood depth
-    depth = p["risk"].get("flood_depth_m", 1.0)
+    # flood depth from rainfall + AI-measured blockage; damage from JRC curves
+    narrowing = int(obstruction.get("channel_narrowing_pct", 40) or 40)
+    depth = estimate_depth_m(storm_mm, narrowing)
+    p["risk"]["flood_depth_m"] = depth
     damage = damage_mod.estimate_damage_eur(exposure, depth)
     clearing = CLEARING_COST_EUR
     ratio = round(damage / clearing) if clearing else 0
@@ -140,6 +166,7 @@ def build_point(p, deadline, real_rivers, assets, api_key=None):
 def build_scenario():
     forecast = build_forecast_block()
     deadline = forecast["event"]["start"] if forecast["event"] else None
+    storm_mm = forecast["event"]["total_mm"] if forecast["event"] else 30
 
     real_rivers = osm.get_rivers()
     rivers = real_rivers if real_rivers else sample_rivers()
@@ -148,7 +175,21 @@ def build_scenario():
     api_key = detect.load_api_key()
     print("AI detection:", "ON (vision model)" if api_key else "OFF (no OPENROUTER_API_KEY)")
 
-    points = [build_point(p, deadline, real_rivers, assets, api_key) for p in base_points()]
+    # auto-discover obstruction sites by scanning the river network; fall back to
+    # the known seed points if discovery is unavailable or finds nothing.
+    base = base_points()
+    if api_key and real_rivers:
+        try:
+            found = discover.discover(real_rivers, api_key, SCAN_SEEDS)
+            if found:
+                base = [point_from_discovery(i, f) for i, f in enumerate(found)]
+                print(f"  using {len(base)} auto-discovered site(s)")
+            else:
+                print("  no sites flagged - using known seed points")
+        except Exception as exc:
+            print(f"  discovery failed ({exc}) - using known seed points")
+
+    points = [build_point(p, deadline, real_rivers, assets, storm_mm) for p in base]
     points.sort(key=lambda p: p["roi"]["ratio"], reverse=True)
 
     return {
@@ -156,7 +197,7 @@ def build_scenario():
             "schema_version": "1.0",
             "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "city": "Sofia",
-            "scenario_name": "Perlovska center - storm scenario",
+            "scenario_name": "Sofia river network scan",
             "aoi_bbox": AOI_BBOX,
         },
         "forecast": forecast,
