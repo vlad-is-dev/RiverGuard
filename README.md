@@ -2,135 +2,136 @@
 
 **Turn the weather forecast into a work order — clear the right river blockage before it floods Sofia.**
 
-RiverGuard is an early-warning system that, when heavy rain is forecast, finds the garbage and obstructions clogging Sofia's rivers from satellite imagery, calculates which one will cause the costliest flooding downstream, and tells crews exactly what to clear first — turning a few hundred leva of prevention into hundreds of thousands of leva of avoided damage.
+> Hack Smart Sofia** (challenge: *Sponge City & Urban Rivers*).
+> Live demo: **https://river-guard-blush.vercel.app**
 
-Built for **Hack Smart Sofia** (challenge: *Sponge City & Urban Rivers*).
+RiverGuard is an early-warning system. When heavy rain is forecast, it scans Sofia's
+rivers from satellite with AI, finds the channels clogged by debris, dumping or
+overgrowth, models which streets and buildings will flood and the damage in euros,
+and hands a crew a ranked work order — turning a few hundred euros of prevention
+into hundreds of thousands of euros of avoided damage.
 
 ---
 
 ## The problem
 
-Sofia floods roughly every 20 years, and each cycle is worse because the city keeps paving over land that used to absorb rainwater, while its rivers are increasingly clogged with dumped waste and narrowed by encroachment. More than half of riverbeds run through private property and most have incorrect cadastre mappings. When a storm hits, obstructions turn ordinary rain into a flood — and nobody has a prioritized, money-based list of *what to clear first*.
+Sofia floods almost every summer. In 2020 the **Perlovska** and **Vladayska** rivers
+burst their banks — metro stations and underpasses underwater, 140+ emergency calls
+in one night. It keeps happening (2018, 2020, 2022…). Bulgaria loses **~€58M/year** to
+floods; only **~10%** of homes are insured, so the state and citizens absorb the rest.
+A blocked channel turns ordinary rain into a flood — and nobody has a prioritized,
+money-based list of *what to clear first*.
 
 ## What RiverGuard does
 
-1. **Trigger** — watches the precipitation forecast; a coming storm starts the clock.
-2. **Detect** — compares fresh satellite/aerial imagery of riverbeds against a clean baseline to find obstructions (dumping, debris, narrowing).
-3. **Risk** — uses Sofia's terrain to estimate, for each obstruction, what gets flooded downstream (metro, roads, homes).
-4. **ROI** — prices the cost of inaction (flood damage) against the cost of clearing now, and ranks by return.
-5. **Dispatch** — generates a concrete work order for the crew: coordinates, deadline before the storm, reason, and the money saved.
-
----
+1. **Trigger** — watches the rain forecast; an incoming storm starts the clock.
+2. **Detect** — for each point along the rivers, an AI compares the live satellite
+   image against the map and flags blocked / overgrown / narrowed channels.
+3. **Flood model** — pulls real terrain and spreads the backed-up water over the low
+   ground to see which blocks and roads go under, and how deep.
+4. **ROI** — prices the damage (EU JRC depth-damage curves, Bulgaria-adjusted) against
+   the €450 cost of clearing, and ranks every site by return.
+5. **Dispatch** — an AI writes the crew a concrete plan: what to clear, what gear, by when.
 
 ## How it works: brain + showcase
 
-The system is split in two so the live demo never depends on heavy computation or network calls.
+The system is split in two so the live demo never depends on network calls or keys.
 
 ```
-  ┌─────────────────────────── BRAIN (Python, offline) ───────────────────────────┐
-  │  Open-Meteo ─┐                                                                  │
-  │  OpenTopo  ──┤                                                                  │
-  │  OSM       ──┼─►  ingest ─► detect ─► risk ─► roi ─► dispatch ─► scenario.json  │
-  │  Anthropic ──┘                                                                  │
-  └────────────────────────────────────────────────────────────────────────────────┘
-                                          │  (commit to GitHub)
-                                          ▼
-  ┌──────────────────────── SHOWCASE (frontend, Vercel) ───────────────────────────┐
-  │  reads scenario.json  ─►  interactive map  ·  risk panel  ·  ROI  ·  work order  │
-  └────────────────────────────────────────────────────────────────────────────────┘
+  ┌──────────── BRAIN (Python, offline) ─────────────┐
+  │  Open-Meteo  ┐                                    │
+  │  OpenStreetMap├─ ingest → detect → flood → roi    │
+  │  Esri imagery │           → plan → scenario.json  │
+  │  OpenRouter  ┘                                    │
+  └──────────────────────────────────────────────────┘
+                     │ (commit to GitHub)
+                     ▼
+  ┌──────────── SHOWCASE (static, Vercel) ───────────┐
+  │  reads scenario.json → landing + map console      │
+  │  flood zone · risk panel · ROI · AI work order    │
+  └──────────────────────────────────────────────────┘
 ```
 
-- The **brain** (this Python project) calls every API **once, during the build**, and bakes the result into a single `scenario.json`.
-- The **showcase** (a static site on Vercel) only reads that JSON. No keys, no API calls, nothing to crash on stage. The URL can be opened on any phone during the pitch.
+- The **brain** (`run.py` + modules) calls every API once and bakes the result into a
+  single `scenario.json`.
+- The **showcase** (static site on Vercel) only reads that JSON — no keys, no API calls,
+  nothing to crash on stage. Open it on any phone during the pitch.
 
-`scenario.json` is the **contract** between the two — see [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+## What's real vs modeled (we say so plainly)
 
----
+- **Real data:** rivers & city assets (OpenStreetMap), satellite imagery (Esri),
+  AI blockage detection, terrain (Copernicus GLO-90 via Open-Meteo), the flood
+  footprint over real terrain, exposed buildings/roads, damage € (JRC).
+- **Real data + first-order model:** water depth (rainfall × blockage proxy) and the
+  bathtub inundation spread — not a full hydrodynamic solve.
+- **Demo:** the storm is a demo event when no real rain is forecast (real Open-Meteo
+  wired as the trigger).
 
-## Repository structure
+## Tech & data sources
 
-```
-riverguard/
-├── README.md              # this file
-├── ARCHITECTURE.md        # data flow + scenario.json contract
-├── DATA_SOURCES.md        # where every dataset comes from
-├── requirements.txt       # Python dependencies
-├── .env.example           # required API keys (copy to .env)
-├── .gitignore
-├── config.py              # AOI bbox, rain thresholds, cost norms
-├── run.py                 # one command → builds scenario.json
-│
-├── src/
-│   ├── ingest/            # weather.py dem.py osm.py satellite.py flood_maps.py
-│   ├── detect/            # change_detection.py  (before/after obstruction finder)
-│   ├── risk/              # flow.py exposure.py score.py
-│   ├── roi/               # damage.py roi.py     (JRC depth-damage → cost)
-│   ├── dispatch/          # ticket.py            (work-order generator)
-│   └── pipeline.py        # glues stages 1→5
-│
-├── data/
-│   ├── raw/               # downloaded source data (git-ignored)
-│   ├── interim/           # reprojected / clipped to AOI
-│   └── processed/
-│       └── scenario.json  # ← the deliverable the frontend reads
-│
-└── web/                   # Vercel frontend (reads scenario.json)
-    └── public/scenario.json
-```
+| Source | Used for | Key? |
+|--------|----------|------|
+| Open-Meteo | rain forecast + terrain elevation (Copernicus GLO-90) | no |
+| OpenStreetMap / Overpass | rivers, buildings, roads, hospitals, stations | no |
+| Esri World Imagery + Topo | satellite vs map images for the AI | no |
+| OpenRouter | vision model (detection) + text model (work order) | yes |
+| EU JRC — Huizinga et al. 2017 | depth-damage curves, Bulgaria-adjusted | open |
+| Leaflet + CartoDB | dark basemap for the console | no |
 
----
+## Quickstart
 
-## Quickstart — the brain (Python engine)
-
+**Engine (Python):**
 ```bash
-# 1. environment
-python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# 2. keys
-cp .env.example .env             # then fill in your keys
-
-# 3. build the scenario
-python run.py                    # → data/processed/scenario.json
+cp .env.example .env        # add your OPENROUTER_API_KEY
+python run.py               # → writes data/processed/scenario.json and web/scenario.json
 ```
 
-`run.py` runs the full pipeline for the configured area of interest and writes `scenario.json`, then copies it into `web/public/` for the frontend.
+**Frontend (static):**
+```bash
+cd web && python -m http.server 8000   # open http://localhost:8000
+```
+`web/index.html` is the landing page; `web/console.html` is the live map console;
+both read `web/scenario.json`. Map tiles are Leaflet + CartoDB (no token). Deploy by
+connecting the repo to Vercel with root directory `web/`.
 
-> Geospatial packages (`geopandas`, `rasterio`, `pysheds`) sometimes need system libraries. If `pip` struggles, use a conda environment, or let Claude Code resolve the install for your OS.
+## Repository
 
-## Quickstart — the showcase (frontend)
+```
+RiverGuard/
+├── run.py            # orchestrator → scenario.json
+├── weather.py        # Open-Meteo forecast + storm detection
+├── osm.py            # OpenStreetMap rivers & assets (Overpass)
+├── detect.py         # AI vision: satellite vs map → blockage
+├── discover.py       # auto-discovery of obstruction points along rivers
+├── flood.py          # terrain flood footprint (bathtub inundation)
+├── exposure.py       # buildings/roads/assets inside the flood zone
+├── damage.py         # JRC depth-damage, Bulgaria-adjusted, per-building
+├── ai_plan.py        # AI clearing plan for the crew
+├── check_limits.py   # OpenRouter quota helper
+├── config.py         # area of interest, thresholds, cost norms
+└── web/
+    ├── index.html    # landing page
+    ├── console.html  # live map console
+    └── scenario.json # the brain↔showcase contract
+```
 
-The frontend lives in `web/` and reads `web/public/scenario.json`. Deploy to Vercel by connecting the GitHub repo (root directory: `web/`). For local preview, serve the `web/` folder with any static server. Map tiles use Mapbox (free token) or Leaflet + OpenStreetMap tiles (no token).
+## Roadmap
 
----
-
-## Scope: MVP vs roadmap
-
-| Stage | MVP (we build) | Roadmap (we narrate) |
-|-------|----------------|----------------------|
-| Trigger | Real Open-Meteo call + one chosen storm scenario | Continuous 24/7 monitoring, auto-activation |
-| Detect | Change detection on 2–3 hero points | City-wide coverage, drone flights, IoT level sensors |
-| Risk | Flow-from-point on real Sofia DEM + OSM assets | Full hydraulic modelling (HEC-RAS), all rain scenarios |
-| ROI | JRC depth-damage × flood depth × asset exposure | Calibration on real damage history, insurer models |
-| Dispatch | LLM-generated work order | Integration with municipal systems, execution tracking |
-
-The demo hero is **Risk → ROI → Dispatch** on one scenario and a handful of points. Honesty about what is synthetic strengthens the pitch.
-
----
-
-## Data sources
-
-Every dataset is open and free. Full inventory with URLs, licenses and access methods in [`DATA_SOURCES.md`](./DATA_SOURCES.md). Headline sources: Open-Meteo (forecast), Copernicus GLO-30 via OpenTopography (terrain), JRC Global Flood Depth-Damage Functions (cost model), official EU Floods Directive hazard maps (flood depth), OpenStreetMap (assets), Sofiaplan / urbandata.sofia.bg (city context).
+Full hydraulic modelling (DEM + HEC-RAS, official EU Floods Directive / PURN maps)
+instead of the depth proxy · live storm trigger · dispatcher workflow (dispatched /
+cleared, prevented-€ tracking) · validation against historical floods · multi-city ·
+integration with municipal systems.
 
 ## Team
 
 | Role | Owner |
 |------|-------|
-| Engine + data (Python) | — |
-| Frontend + map (Vercel) | — |
-| Economics + pitch | — |
+| Engine, data & frontend | **Vladislav Yakunin** ([@vlad-is-dev](https://github.com/vlad-is-dev)) |
+| Pitch & business | **Vladislav Yakunin** |
 
-## Credits & license
+## License
 
-Data under their respective licenses (see `DATA_SOURCES.md`); Open-Meteo data CC BY 4.0. Prototype built at Hack Smart Sofia. Code released under the MIT License.
+Code under the **MIT License**. Data under their respective licenses (Open-Meteo CC BY 4.0,
+OpenStreetMap ODbL, Esri terms, Copernicus free, EU JRC open). Built at Hack Smart Sofia.
